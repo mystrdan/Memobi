@@ -140,28 +140,6 @@ mod tests {
 
     #[test]
     fn transactions_can_spend_outputs_created_earlier_in_the_block() {
-        let seed_tx = Transaction {
-            version: 1,
-            inputs: vec![crate::TxInput {
-                previous_output: OutPoint {
-                    txid: Hash32([9u8; 32]),
-                    index: 0,
-                },
-                unlocking_data: Vec::new(),
-            }],
-            outputs: vec![crate::TxOutput {
-                value: 100,
-                spending_condition: b"seed".to_vec(),
-            }],
-            fee: 0,
-        };
-
-        let seed_id = seed_tx.txid().unwrap();
-        let seed_outpoint = OutPoint {
-            txid: seed_id,
-            index: 0,
-        };
-
         let mut state = ChainState::default();
         state.utxos.insert(
             OutPoint {
@@ -190,10 +168,14 @@ mod tests {
 
         let follow_up = spend(expected_seed_outpoint, 100, b"final");
 
+        let transactions = vec![funding, follow_up];
+        let mut block_header = header(0, Hash32::ZERO);
+        block_header.transaction_root = crate::block::transaction_root(&transactions).unwrap();
+
         state
             .apply_block(&Block {
-                header: header(0, Hash32::ZERO),
-                transactions: vec![funding, follow_up],
+                header: block_header,
+                transactions,
             })
             .unwrap();
 
@@ -201,6 +183,5 @@ mod tests {
             txid: follow_up.txid().unwrap(),
             index: 0,
         }));
-        let _ = seed_outpoint;
     }
 }
