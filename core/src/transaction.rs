@@ -59,6 +59,7 @@ impl Encode for TxOutput {
 
 impl Encode for Transaction {
     fn encode(&self, out: &mut Vec<u8>) -> Result<(), ProtocolError> {
+        put_u32_le(out, self.version);
         put_u32_le(
             out,
             u32::try_from(self.inputs.len()).map_err(|_| ProtocolError::LengthOverflow)?,
@@ -151,5 +152,6 @@ mod tests {
         assert_eq!(a, b);
         assert_eq!(Transaction::decode(&a).unwrap(), tx);
         assert_eq!(tx.txid().unwrap(), sha256(&a));
+        assert_eq!(&a[..4], &1u32.to_le_bytes());
     }
 }
