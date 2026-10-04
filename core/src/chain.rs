@@ -9,7 +9,7 @@ use crate::{
     block::BlockHeader,
     hash::Hash32,
     transaction::{OutPoint, Transaction},
-    utxo::{validate_transaction, UtxoEntry, UtxoSet},
+    utxo::{UtxoEntry, UtxoSet, validate_transaction},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -51,14 +51,11 @@ impl ChainState {
 
         let mut txids = HashSet::with_capacity(block.transactions.len());
         for tx in &block.transactions {
-            let txid = tx
-                .txid()
-                .map_err(|_| ChainError::DuplicateTransaction)?;
+            let txid = tx.txid().map_err(|_| ChainError::DuplicateTransaction)?;
             if !txids.insert(txid) {
                 return Err(ChainError::DuplicateTransaction);
             }
-            validate_transaction(tx, &self.utxos)
-                .map_err(ChainError::InvalidTransaction)?;
+            validate_transaction(tx, &self.utxos).map_err(ChainError::InvalidTransaction)?;
         }
 
         for tx in &block.transactions {
@@ -66,9 +63,7 @@ impl ChainState {
                 self.utxos.remove(&input.previous_output);
             }
 
-            let txid = tx
-                .txid()
-                .map_err(|_| ChainError::DuplicateTransaction)?;
+            let txid = tx.txid().map_err(|_| ChainError::DuplicateTransaction)?;
 
             for (index, output) in tx.outputs.iter().enumerate() {
                 self.utxos.insert(
