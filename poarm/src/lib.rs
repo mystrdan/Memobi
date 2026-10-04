@@ -135,26 +135,47 @@ mod tests {
 
     #[test]
     fn deterministic() {
-        let config = Config { memory_kib: 64, rounds: 2 };
-        assert_eq!(work(b"memobi", 42, config), work(b"memobi", 42, config));
+        let config = Config {
+            memory_kib: 64,
+            rounds: 2,
+        };
+        assert_eq!(
+            work(b"memobi", 42, config),
+            work(b"memobi", 42, config)
+        );
     }
 
     #[test]
     fn nonce_changes_work() {
-        let config = Config { memory_kib: 64, rounds: 2 };
-        assert_ne!(work(b"memobi", 1, config), work(b"memobi", 2, config));
+        let config = Config {
+            memory_kib: 64,
+            rounds: 2,
+        };
+        assert_ne!(
+            work(b"memobi", 1, config),
+            work(b"memobi", 2, config)
+        );
     }
 
     #[test]
     fn zero_memory_is_normalized() {
-        let zero = Config { memory_kib: 0, rounds: 1 };
-        let one = Config { memory_kib: 1, rounds: 1 };
+        let zero = Config {
+            memory_kib: 0,
+            rounds: 1,
+        };
+        let one = Config {
+            memory_kib: 1,
+            rounds: 1,
+        };
         assert_ne!(work(b"memobi", 1, zero), work(b"memobi", 1, one));
     }
 
     #[test]
     fn candidate_b_is_deterministic() {
-        let config = Config { memory_kib: 64, rounds: 2 };
+        let config = Config {
+            memory_kib: 64,
+            rounds: 2,
+        };
         assert_eq!(
             work_candidate_b(b"memobi", 42, config),
             work_candidate_b(b"memobi", 42, config)
@@ -163,7 +184,10 @@ mod tests {
 
     #[test]
     fn candidate_c_depends_on_epoch() {
-        let config = Config { memory_kib: 64, rounds: 2 };
+        let config = Config {
+            memory_kib: 64,
+            rounds: 2,
+        };
         assert_ne!(
             work_candidate_c(b"memobi", 42, 1, config),
             work_candidate_c(b"memobi", 42, 2, config)
