@@ -204,14 +204,20 @@ mod tests {
     fn oversized_collection_is_rejected() {
         let mut bytes = vec![VERSION, 2];
         bytes.extend_from_slice(&u32::MAX.to_le_bytes());
-        assert_eq!(Message::decode(&bytes), Err(ProtocolError::InvalidMessageSize));
+        assert_eq!(
+            Message::decode(&bytes),
+            Err(ProtocolError::InvalidMessageSize)
+        );
     }
 
     #[test]
     fn oversized_payload_is_rejected() {
         let mut bytes = vec![VERSION, 7];
         bytes.extend_from_slice(&(2 * 1024 * 1024 + 1u32).to_le_bytes());
-        assert_eq!(Message::decode(&bytes), Err(ProtocolError::InvalidMessageSize));
+        assert_eq!(
+            Message::decode(&bytes),
+            Err(ProtocolError::InvalidMessageSize)
+        );
     }
 
     #[test]
