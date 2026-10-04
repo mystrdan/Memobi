@@ -3,7 +3,7 @@
 //! Spending-condition and signature formats remain intentionally opaque until
 //! the cryptographic/addressing design is finalized.
 
-use crate::{codec::{put_bytes, put_u32_le, put_u64_le, read_bytes_u32, Encode, Reader}, Hash32, ProtocolError};
+use crate::{codec::{put_bytes, put_u32_le, put_u64_le, read_bytes_u32, Encode, Reader}, hash::sha256, Hash32, ProtocolError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OutPoint {
@@ -74,6 +74,11 @@ impl Transaction {
         let mut out = Vec::new();
         self.encode(&mut out)?;
         Ok(out)
+    }
+
+    /// Compute the transaction identifier from its canonical serialization.
+    pub fn txid(&self) -> Result<Hash32, ProtocolError> {
+        Ok(sha256(&self.encode_to_vec()?))
     }
 
     pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
