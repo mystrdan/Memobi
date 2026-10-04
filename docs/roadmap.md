@@ -40,15 +40,18 @@
 ## Phase 2 — Devnet
 
 - [x] Begin blockchain data structures
+- [x] Provisional deterministic genesis builder
 - [ ] Genesis block
 - [x] Transaction validation skeleton
 - [x] UTXO set skeleton
 - [ ] Block validation
 - [ ] PoARM mining
+- [x] Difficulty-adjustment laboratory model
 - [ ] Difficulty adjustment
 - [x] P2P message serialization skeleton
 - [ ] P2P networking
 - [ ] Chain synchronization
+- [x] Wallet key-selection requirements
 - [ ] Wallet and key handling
 - [ ] CLI node and miner
 
