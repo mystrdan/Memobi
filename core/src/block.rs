@@ -72,6 +72,24 @@ impl BlockHeader {
         Ok(out)
     }
 
+    /// Build the canonical preimage seed for the experimental PoARM workload.
+    ///
+    /// The nonce is excluded so miners can vary it without changing the seed.
+    /// Epoch is explicit so future workload parameters can depend on chain state.
+    pub fn poarm_seed(&self, epoch: u64) -> Result<Hash32, ProtocolError> {
+        let mut bytes = Vec::with_capacity(15 + 4 + 32 + 8 + 8 + 8 + 4 + 32 + 8);
+        bytes.extend_from_slice(b"MEMOBI-POARM-V0");
+        put_u32_le(&mut bytes, self.version);
+        bytes.extend_from_slice(self.previous_block.as_bytes());
+        put_u64_le(&mut bytes, self.height.0);
+        put_u64_le(&mut bytes, self.timestamp);
+        put_u64_le(&mut bytes, self.target);
+        put_u32_le(&mut bytes, self.poarm_version);
+        bytes.extend_from_slice(self.transaction_root.as_bytes());
+        put_u64_le(&mut bytes, epoch);
+        Ok(sha256(&bytes))
+    }
+
     /// Compute the block-header identifier from its canonical serialization.
     pub fn block_id(&self) -> Result<Hash32, ProtocolError> {
         Ok(sha256(&self.encode_to_vec()?))
