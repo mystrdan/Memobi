@@ -3,7 +3,7 @@
 //! The exact consensus fields remain under active design; this module gives
 //! the project a deterministic skeleton without freezing PoARM or economics.
 
-use crate::{codec::{put_u32_le, put_u64_le, Encode}, Hash32, BlockHeight, ProtocolError};
+use crate::{codec::{put_u32_le, put_u64_le, Encode}, hash::sha256, Hash32, BlockHeight, ProtocolError};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockHeader {
@@ -36,6 +36,11 @@ impl BlockHeader {
         let mut out = Vec::with_capacity(4 + 32 + 8 + 8 + 8 + 4 + 8 + 32);
         self.encode(&mut out)?;
         Ok(out)
+    }
+
+    /// Compute the block-header identifier from its canonical serialization.
+    pub fn block_id(&self) -> Result<Hash32, ProtocolError> {
+        Ok(sha256(&self.encode_to_vec()?))
     }
 }
 
