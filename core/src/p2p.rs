@@ -201,7 +201,6 @@ mod tests {
     use super::*;
 
     #[test]
-    #[test]
     fn oversized_collection_is_rejected() {
         let mut bytes = vec![VERSION, 2];
         bytes.extend_from_slice(&u32::MAX.to_le_bytes());
@@ -215,6 +214,7 @@ mod tests {
         assert_eq!(Message::decode(&bytes), Err(ProtocolError::InvalidMessageSize));
     }
 
+    #[test]
     fn message_round_trip() {
         let messages = [
             Message::Version {
