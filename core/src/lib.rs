@@ -18,6 +18,7 @@ pub mod sync;
 pub mod transaction;
 pub mod utxo;
 pub mod validation;
+pub mod validation;
 
 pub use hash::Hash32;
 pub use transaction::{OutPoint, Transaction, TxInput, TxOutput};
