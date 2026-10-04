@@ -124,5 +124,6 @@ mod tests {
         let b = tx.encode_to_vec().unwrap();
         assert_eq!(a, b);
         assert_eq!(Transaction::decode(&a).unwrap(), tx);
+        assert_eq!(tx.txid().unwrap(), sha256(&a));
     }
 }
