@@ -16,6 +16,6 @@ The current laboratory subsidy uses the existing provisional halving model in `c
 
 ## Important limitation
 
-The current implementation estimates transaction fees from the current UTXO set before full transaction application. It is a development bridge, not a final consensus rule. Final validation must calculate fees from fully validated transactions and define coinbase maturity/spendability rules if needed.
+The validator now evaluates ordinary transactions against a staged UTXO view so fees from earlier transactions in the same block can be accounted for. This remains a development bridge until transaction authorization, coinbase maturity/spendability, and final reward rules are frozen.
 
 Genesis remains special and must eventually receive explicit genesis/coinbase semantics rather than inheriting ordinary block rules.
