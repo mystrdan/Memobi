@@ -3,7 +3,11 @@
 //! Spending-condition and signature formats remain intentionally opaque until
 //! the cryptographic/addressing design is finalized.
 
-use crate::{codec::{put_bytes, put_u32_le, put_u64_le, read_bytes_u32, Encode, Reader}, hash::sha256, Hash32, ProtocolError};
+use crate::{
+    codec::{put_bytes, put_u32_le, put_u64_le, read_bytes_u32, Encode, Reader},
+    hash::sha256,
+    Hash32, ProtocolError,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct OutPoint {
@@ -56,11 +60,19 @@ impl Encode for TxOutput {
 impl Encode for Transaction {
     fn encode(&self, out: &mut Vec<u8>) -> Result<(), ProtocolError> {
         put_u32_le(out, self.version);
-        put_u32_le(out, u32::try_from(self.inputs.len()).map_err(|_| ProtocolError::LengthOverflow)?);
+        put_u32_le(
+            out,
+            u32::try_from(self.inputs.len())
+                .map_err(|_| ProtocolError::LengthOverflow)?,
+        );
         for input in &self.inputs {
             input.encode(out)?;
         }
-        put_u32_le(out, u32::try_from(self.outputs.len()).map_err(|_| ProtocolError::LengthOverflow)?);
+        put_u32_le(
+            out,
+            u32::try_from(self.outputs.len())
+                .map_err(|_| ProtocolError::LengthOverflow)?,
+        );
         for output in &self.outputs {
             output.encode(out)?;
         }
@@ -86,22 +98,38 @@ impl Transaction {
         let version = reader.read_u32_le()?;
         let input_count = reader.read_u32_le()? as usize;
         let mut inputs = Vec::with_capacity(input_count);
+
         for _ in 0..input_count {
             let txid = Hash32(reader.read_array()?);
             let index = reader.read_u32_le()?;
             let unlocking_data = read_bytes_u32(&mut reader)?.to_vec();
-            inputs.push(TxInput { previous_output: OutPoint { txid, index }, unlocking_data });
+            inputs.push(TxInput {
+                previous_output: OutPoint { txid, index },
+                unlocking_data,
+            });
         }
+
         let output_count = reader.read_u32_le()? as usize;
         let mut outputs = Vec::with_capacity(output_count);
+
         for _ in 0..output_count {
             let value = reader.read_u64_le()?;
             let spending_condition = read_bytes_u32(&mut reader)?.to_vec();
-            outputs.push(TxOutput { value, spending_condition });
+            outputs.push(TxOutput {
+                value,
+                spending_condition,
+            });
         }
+
         let fee = reader.read_u64_le()?;
         reader.finish()?;
-        Ok(Self { version, inputs, outputs, fee })
+
+        Ok(Self {
+            version,
+            inputs,
+            outputs,
+            fee,
+        })
     }
 }
 
@@ -114,10 +142,16 @@ mod tests {
         let tx = Transaction {
             version: 1,
             inputs: vec![TxInput {
-                previous_output: OutPoint { txid: Hash32([7u8; 32]), index: 3 },
+                previous_output: OutPoint {
+                    txid: Hash32([7u8; 32]),
+                    index: 3,
+                },
                 unlocking_data: b"sig".to_vec(),
             }],
-            outputs: vec![TxOutput { value: 123, spending_condition: b"condition".to_vec() }],
+            outputs: vec![TxOutput {
+                value: 123,
+                spending_condition: b"condition".to_vec(),
+            }],
             fee: 2,
         };
         let a = tx.encode_to_vec().unwrap();
