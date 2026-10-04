@@ -1,15 +1,16 @@
 //! Experimental PoARM laboratory implementation.
 //!
-//! This is a research benchmark and is NOT consensus-ready.
-//! The workload is intentionally simple so that its performance and scaling
-//! characteristics can be measured before a production PoARM design exists.
+//! This is research code and is NOT consensus-ready.
+//! The workload exists to study memory pressure, sequential dependencies,
+//! scaling, and cross-platform determinism.
 
 use sha2::{Digest, Sha256};
 
 pub const VERSION: u32 = 0;
 pub const DEFAULT_MEMORY_KIB: usize = 1024;
+pub const DEFAULT_ROUNDS: u32 = 8;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Config {
     pub memory_kib: usize,
     pub rounds: u32,
@@ -19,7 +20,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             memory_kib: DEFAULT_MEMORY_KIB,
-            rounds: 8,
+            rounds: DEFAULT_ROUNDS,
         }
     }
 }
@@ -76,19 +77,20 @@ mod tests {
 
     #[test]
     fn deterministic() {
-        let config = Config {
-            memory_kib: 64,
-            rounds: 2,
-        };
+        let config = Config { memory_kib: 64, rounds: 2 };
         assert_eq!(work(b"memobi", 42, config), work(b"memobi", 42, config));
     }
 
     #[test]
     fn nonce_changes_work() {
-        let config = Config {
-            memory_kib: 64,
-            rounds: 2,
-        };
+        let config = Config { memory_kib: 64, rounds: 2 };
         assert_ne!(work(b"memobi", 1, config), work(b"memobi", 2, config));
+    }
+
+    #[test]
+    fn zero_memory_is_normalized() {
+        let zero = Config { memory_kib: 0, rounds: 1 };
+        let one = Config { memory_kib: 1, rounds: 1 };
+        assert_ne!(work(b"memobi", 1, zero), work(b"memobi", 1, one));
     }
 }
