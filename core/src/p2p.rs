@@ -3,7 +3,11 @@
 //! Message names and wire format are not consensus-frozen. This module exists
 //! so networking work can proceed without coupling it to a centralized API.
 
-use crate::{codec::{put_bytes, put_u32_le, Encode, Reader}, hash::Hash32, ProtocolError};
+use crate::{
+    codec::{put_bytes, put_u32_le, Reader},
+    hash::Hash32,
+    ProtocolError,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
