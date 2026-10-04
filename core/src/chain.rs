@@ -26,6 +26,7 @@ pub enum ChainError {
     Serialization(crate::ProtocolError),
     InvalidPreviousBlock,
     HeightMismatch,
+    InvalidTransactionRoot,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -48,6 +49,12 @@ impl ChainState {
             if block.header.height.0 != height + 1 {
                 return Err(ChainError::HeightMismatch);
             }
+        }
+
+        let expected_root = crate::block::transaction_root(&block.transactions)
+            .map_err(ChainError::Serialization)?;
+        if block.header.transaction_root != expected_root {
+            return Err(ChainError::InvalidTransactionRoot);
         }
 
         let mut txids = HashSet::with_capacity(block.transactions.len());
