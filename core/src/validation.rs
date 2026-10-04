@@ -34,30 +34,45 @@ fn validate_coinbase(block: &Block, state: &ChainState) -> Result<(), BlockValid
     let Some((first, rest)) = block.transactions.split_first() else {
         return Err(BlockValidationError::MissingCoinbase);
     };
-    if !is_coinbase(first) {
+    if block.header.height.0 == 0 {
+        return Ok(());
+    }
+    if !first.is_coinbase() {
         return Err(BlockValidationError::MissingCoinbase);
     }
-    if rest.iter().any(is_coinbase) {
+    if rest.iter().any(crate::Transaction::is_coinbase) {
         return Err(BlockValidationError::MultipleCoinbase);
     }
     if first.fee != 0 || first.outputs.iter().any(|output| output.value == 0) {
         return Err(BlockValidationError::InvalidCoinbase);
     }
+
+    let mut staged = state.utxos.clone();
     let mut fees = 0u64;
     for tx in rest {
-        let mut input_total = 0u64;
+        crate::utxo::validate_transaction(tx, &staged)
+            .map_err(|_| BlockValidationError::InvalidCoinbase)?;
+        fees = fees.checked_add(tx.fee).ok_or(BlockValidationError::RewardOverflow)?;
         for input in &tx.inputs {
-            let Some(entry) = state.utxos.get(&input.previous_output) else {
-                continue;
-            };
-            input_total = input_total.checked_add(entry.value).ok_or(BlockValidationError::RewardOverflow)?;
+            staged.remove(&input.previous_output);
         }
-        let output_total = tx.outputs.iter().try_fold(0u64, |sum, output| {
-            sum.checked_add(output.value).ok_or(BlockValidationError::RewardOverflow)
-        })?;
-        fees = fees.checked_add(input_total.checked_sub(output_total).unwrap_or(0)).ok_or(BlockValidationError::RewardOverflow)?;
+        let txid = tx.txid().map_err(|_| BlockValidationError::RewardOverflow)?;
+        for (index, output) in tx.outputs.iter().enumerate() {
+            let index = u32::try_from(index).map_err(|_| BlockValidationError::RewardOverflow)?;
+            staged.insert(
+                crate::OutPoint { txid, index },
+                crate::utxo::UtxoEntry {
+                    value: output.value,
+                    spending_condition: output.spending_condition.clone(),
+                },
+            );
+        }
     }
-    let subsidy = crate::reward::block_subsidy(block.header.height.0, crate::reward::RewardConfig::provisional());
+
+    let subsidy = crate::reward::block_subsidy(
+        block.header.height.0,
+        crate::reward::RewardConfig::provisional(),
+    );
     let allowed = subsidy.checked_add(fees).ok_or(BlockValidationError::RewardOverflow)?;
     let coinbase_value = first.outputs.iter().try_fold(0u64, |sum, output| {
         sum.checked_add(output.value).ok_or(BlockValidationError::RewardOverflow)
@@ -67,7 +82,6 @@ fn validate_coinbase(block: &Block, state: &ChainState) -> Result<(), BlockValid
     }
     Ok(())
 }
-
 pub fn validate_block_header(
     state: &ChainState,
     block: &Block,
