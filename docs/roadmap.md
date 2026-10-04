@@ -41,11 +41,12 @@
 
 - [x] Begin blockchain data structures
 - [ ] Genesis block
-- [ ] Transaction validation
-- [ ] UTXO set
+- [x] Transaction validation skeleton
+- [x] UTXO set skeleton
 - [ ] Block validation
 - [ ] PoARM mining
 - [ ] Difficulty adjustment
+- [x] P2P message serialization skeleton
 - [ ] P2P networking
 - [ ] Chain synchronization
 - [ ] Wallet and key handling
