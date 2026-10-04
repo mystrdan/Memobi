@@ -10,6 +10,8 @@ pub const VERSION: u32 = 0;
 pub const DEFAULT_MEMORY_KIB: usize = 1024;
 pub const DEFAULT_ROUNDS: u32 = 8;
 
+pub mod miner;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Config {
     pub memory_kib: usize,
