@@ -13,6 +13,9 @@ pub mod pow;
 pub mod transaction;
 pub mod utxo;
 
+pub use hash::Hash32;
+pub use transaction::{OutPoint, Transaction, TxInput, TxOutput};
+
 pub const COIN: u64 = 100_000_000;
 pub const MEMO_DECIMALS: u32 = 8;
 
