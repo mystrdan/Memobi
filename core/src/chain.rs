@@ -168,6 +168,7 @@ mod tests {
 
         let follow_up = spend(expected_seed_outpoint, 100, b"final");
 
+        let follow_up_id = follow_up.txid().unwrap();
         let transactions = vec![funding, follow_up];
         let mut block_header = header(0, Hash32::ZERO);
         block_header.transaction_root = crate::block::transaction_root(&transactions).unwrap();
@@ -180,7 +181,7 @@ mod tests {
             .unwrap();
 
         assert!(state.utxos.contains_key(&OutPoint {
-            txid: follow_up.txid().unwrap(),
+            txid: follow_up_id,
             index: 0,
         }));
     }
