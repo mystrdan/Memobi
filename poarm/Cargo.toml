@@ -1,0 +1,16 @@
+[package]
+name = "memobi-poarm"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "memobi_poarm"
+path = "src/lib.rs"
+
+[[bin]]
+name = "poarm-bench"
+path = "src/main.rs"
+
+[dependencies]
+sha2 = "0.10"
