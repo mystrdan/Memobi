@@ -4,43 +4,23 @@
 //! so networking work can proceed without coupling it to a centralized API.
 
 use crate::{
-    codec::{put_bytes, put_u32_le, Reader},
-    hash::Hash32,
     ProtocolError,
+    codec::{Reader, put_bytes, put_u32_le},
+    hash::Hash32,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Message {
-    Version {
-        protocol_version: u32,
-        node_nonce: u64,
-        height: u64,
-    },
+    Version { protocol_version: u32, node_nonce: u64, height: u64 },
     Verack,
-    GetHeaders {
-        locator: Vec<Hash32>,
-    },
-    Headers {
-        headers: Vec<Vec<u8>>,
-    },
-    GetBlocks {
-        locator: Vec<Hash32>,
-    },
-    Blocks {
-        blocks: Vec<Vec<u8>>,
-    },
-    Inv {
-        hashes: Vec<Hash32>,
-    },
-    Tx {
-        transaction: Vec<u8>,
-    },
-    Ping {
-        nonce: u64,
-    },
-    Pong {
-        nonce: u64,
-    },
+    GetHeaders { locator: Vec<Hash32> },
+    Headers { headers: Vec<Vec<u8>> },
+    GetBlocks { locator: Vec<Hash32> },
+    Blocks { blocks: Vec<Vec<u8>> },
+    Inv { hashes: Vec<Hash32> },
+    Tx { transaction: Vec<u8> },
+    Ping { nonce: u64 },
+    Pong { nonce: u64 },
 }
 
 const VERSION: u8 = 1;
@@ -67,11 +47,7 @@ impl Message {
         out.push(self.kind());
 
         match self {
-            Self::Version {
-                protocol_version,
-                node_nonce,
-                height,
-            } => {
+            Self::Version { protocol_version, node_nonce, height } => {
                 put_u32_le(&mut out, *protocol_version);
                 out.extend_from_slice(&node_nonce.to_le_bytes());
                 out.extend_from_slice(&height.to_le_bytes());
@@ -86,7 +62,7 @@ impl Message {
                     out.extend_from_slice(hash.as_bytes());
                 }
             }
-            Self::Headers { headers } | Self::Blocks { blocks } => {
+            Self::Headers { headers } | Self::Blocks { blocks: headers } => {
                 put_u32_le(
                     &mut out,
                     u32::try_from(headers.len()).map_err(|_| ProtocolError::LengthOverflow)?,
@@ -133,11 +109,7 @@ impl Message {
                 for _ in 0..count {
                     locator.push(Hash32(reader.read_array()?));
                 }
-                if kind == 2 {
-                    Self::GetHeaders { locator }
-                } else {
-                    Self::GetBlocks { locator }
-                }
+                if kind == 2 { Self::GetHeaders { locator } } else { Self::GetBlocks { locator } }
             }
             3 | 5 => {
                 let count = reader.read_u32_le()? as usize;
@@ -145,30 +117,18 @@ impl Message {
                 for _ in 0..count {
                     payloads.push(crate::codec::read_bytes_u32(&mut reader)?.to_vec());
                 }
-                if kind == 3 {
-                    Self::Headers { headers: payloads }
-                } else {
-                    Self::Blocks { blocks: payloads }
-                }
+                if kind == 3 { Self::Headers { headers: payloads } } else { Self::Blocks { blocks: payloads } }
             }
             6 => {
                 let count = reader.read_u32_le()? as usize;
                 let mut hashes = Vec::with_capacity(count);
-                for _ in 0..count {
-                    hashes.push(Hash32(reader.read_array()?));
-                }
+                for _ in 0..count { hashes.push(Hash32(reader.read_array()?)); }
                 Self::Inv { hashes }
             }
-            7 => Self::Tx {
-                transaction: crate::codec::read_bytes_u32(&mut reader)?.to_vec(),
-            },
+            7 => Self::Tx { transaction: crate::codec::read_bytes_u32(&mut reader)?.to_vec() },
             8 | 9 => {
                 let nonce = u64::from_le_bytes(reader.read_array()?);
-                if kind == 8 {
-                    Self::Ping { nonce }
-                } else {
-                    Self::Pong { nonce }
-                }
+                if kind == 8 { Self::Ping { nonce } } else { Self::Pong { nonce } }
             }
             _ => return Err(ProtocolError::InvalidMessageType),
         };
@@ -185,24 +145,12 @@ mod tests {
     #[test]
     fn message_round_trip() {
         let messages = [
-            Message::Version {
-                protocol_version: 1,
-                node_nonce: 42,
-                height: 7,
-            },
+            Message::Version { protocol_version: 1, node_nonce: 42, height: 7 },
             Message::Verack,
-            Message::GetHeaders {
-                locator: vec![Hash32([1u8; 32])],
-            },
-            Message::Headers {
-                headers: vec![b"header".to_vec()],
-            },
-            Message::Inv {
-                hashes: vec![Hash32([2u8; 32]), Hash32([3u8; 32])],
-            },
-            Message::Tx {
-                transaction: b"tx".to_vec(),
-            },
+            Message::GetHeaders { locator: vec![Hash32([1u8; 32])] },
+            Message::Headers { headers: vec![b"header".to_vec()] },
+            Message::Inv { hashes: vec![Hash32([2u8; 32]), Hash32([3u8; 32])] },
+            Message::Tx { transaction: b"tx".to_vec() },
             Message::Ping { nonce: 99 },
             Message::Pong { nonce: 99 },
         ];
