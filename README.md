@@ -1,52 +1,56 @@
 # Memobi
 
-**Memobi** is an experimental blockchain built around **PoARM (Proof of ARM)** — a Proof-of-Work design intended to make smartphone-class CPUs first-class mining hardware.
+**Memobi** is an experimental blockchain built around **PoARM — Proof of ARM**.
 
-> A Proof-of-Work blockchain designed for the computers people already carry.
+Its goal is simple:
 
-## Project status
+> Explore a real Proof-of-Work network designed around the computers people already carry.
 
-Memobi is currently in the protocol and research phase.
+## Current direction
 
-We are deliberately starting with the consensus mechanism before building the wallet, node, explorer, or Android application.
+- Chain: **Memobi**
+- Native coin: **MEMO**
+- Consensus research: **PoARM**
+- Core language: **Rust**
+- Mobile UI: **Flutter**
+- First app target: **Android**
+- Transaction model: **UTXO**
+- Network: **peer-to-peer**
+- Explorer: separate web application
 
-### Initial goals
+Memobi is deliberately not being designed as another general-purpose smart-contract chain.
 
-- Real Proof-of-Work, not simulated mining
-- Smartphone/tablet-class CPUs as the intended mining hardware
-- Permissionless participation
-- Native MEMO currency
-- Simple UTXO-based payments
-- No smart contracts
-- No EVM
-- No NFTs or DeFi
-- P2P-first network architecture
-- Mobile-first node and mining experience
+There are currently:
 
-## Development language
+- no smart contracts
+- no EVM
+- no NFTs
+- no DeFi
+- no token factory
+- no mandatory accounts or cloud wallet
 
-Memobi's core implementation will be written in **Rust**.
+The focus is **MEMO, Proof-of-Work, payments, validation, networking, and mobile participation**.
 
-Rust is selected for its low-level control, memory safety, concurrency guarantees, and suitability for high-performance systems software.
+## Application architecture
 
-## Development phases
+The planned all-in-one mobile application combines wallet, MEMO activity, network status, and mining controls in one Flutter interface.
 
-1. **Protocol specification**
-2. **PoARM laboratory and benchmarks**
-3. **Memobi devnet**
-4. **Android alpha**
-5. **Public testnet**
-6. **PoARM hardening**
-7. **Mainnet candidate**
-8. **Mainnet**
+Flutter is the UI layer. The protocol and consensus implementation remain in Rust.
 
-## Repository
+## Status
 
-The repository is intentionally starting small. Consensus assumptions will be documented and tested before they are treated as production rules.
+Memobi is experimental. The PoARM algorithm, economic parameters, serialization, cryptography, difficulty rules, and genesis configuration are still being researched and must not be treated as mainnet-final.
 
-See:
+## Repository structure
 
-- `docs/protocol.md`
-- `docs/poarm.md`
-- `docs/economics.md`
-- `docs/roadmap.md`
+- `core/` — Rust protocol primitives
+- `poarm/` — PoARM research and benchmark code
+- `docs/` — protocol and research documents
+- `mobile/` — reserved Flutter application layer
+- `.github/workflows/` — automated Rust checks
+
+## Roadmap
+
+See [docs/roadmap.md](docs/roadmap.md).
+
+The immediate priority is to validate the protocol foundations and PoARM on real hardware before building the production mobile UI.
