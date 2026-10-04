@@ -4,10 +4,19 @@
 //! that can later be exercised by a real node.
 
 use std::collections::HashSet;
-use crate::{block::BlockHeader, hash::Hash32, transaction::{OutPoint, Transaction}, utxo::{validate_transaction, UtxoEntry, UtxoSet}};
+
+use crate::{
+    block::BlockHeader,
+    hash::Hash32,
+    transaction::{OutPoint, Transaction},
+    utxo::{validate_transaction, UtxoEntry, UtxoSet},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Block { pub header: BlockHeader, pub transactions: Vec<Transaction> }
+pub struct Block {
+    pub header: BlockHeader,
+    pub transactions: Vec<Transaction>,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChainError {
@@ -19,7 +28,11 @@ pub enum ChainError {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct ChainState { pub tip: Option<Hash32>, pub height: Option<u64>, pub utxos: UtxoSet }
+pub struct ChainState {
+    pub tip: Option<Hash32>,
+    pub height: Option<u64>,
+    pub utxos: UtxoSet,
+}
 
 impl ChainState {
     pub fn apply_block(&mut self, block: &Block) -> Result<Hash32, ChainError> {
