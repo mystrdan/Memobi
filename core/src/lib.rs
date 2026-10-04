@@ -5,8 +5,11 @@
 
 pub mod block;
 pub mod codec;
+pub mod difficulty;
 pub mod hash;
+pub mod p2p;
 pub mod transaction;
+pub mod utxo;
 
 pub const COIN: u64 = 100_000_000;
 pub const MEMO_DECIMALS: u32 = 8;
@@ -26,4 +29,6 @@ pub enum ProtocolError {
     UnexpectedEof,
     TrailingBytes,
     LengthOverflow,
+    InvalidMessageVersion,
+    InvalidMessageType,
 }
