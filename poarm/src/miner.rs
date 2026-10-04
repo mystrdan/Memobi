@@ -3,7 +3,7 @@
 //! This is laboratory code. Its target interpretation intentionally mirrors
 //! the temporary core PoW helper and must not be treated as final consensus.
 
-use crate::{work_candidate_c, Config};
+use crate::{Config, work_candidate_c};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MiningResult {
