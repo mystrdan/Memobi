@@ -9,6 +9,7 @@ pub mod codec;
 pub mod difficulty;
 pub mod hash;
 pub mod p2p;
+pub mod pow;
 pub mod transaction;
 pub mod utxo;
 
