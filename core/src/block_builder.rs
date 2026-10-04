@@ -23,6 +23,34 @@ pub struct BlockTemplate {
 }
 
 impl BlockTemplate {
+    /// Build a provisional mining block with a coinbase payout.
+    /// The supplied transactions must be ordinary transactions.
+    pub fn build_mining_block(
+        self,
+        transactions: Vec<Transaction>,
+        payout_condition: Vec<u8>,
+        reward_config: crate::reward::RewardConfig,
+    ) -> Result<Block, ProtocolError> {
+        let fees = transactions.iter().try_fold(0u64, |sum, tx| {
+            sum.checked_add(tx.fee).ok_or(ProtocolError::LengthOverflow)
+        })?;
+        let subsidy = crate::reward::block_subsidy(self.height.0, reward_config);
+        let payout = subsidy.checked_add(fees).ok_or(ProtocolError::LengthOverflow)?;
+        let coinbase = Transaction {
+            version: 1,
+            inputs: Vec::new(),
+            outputs: vec![crate::TxOutput {
+                value: payout,
+                spending_condition: payout_condition,
+            }],
+            fee: 0,
+        };
+        let mut all = Vec::with_capacity(transactions.len() + 1);
+        all.push(coinbase);
+        all.extend(transactions);
+        self.build(all)
+    }
+
     pub fn build(self, transactions: Vec<Transaction>) -> Result<Block, ProtocolError> {
         let transaction_root = transaction_root(&transactions)?;
         Ok(Block {
