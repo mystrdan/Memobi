@@ -27,6 +27,8 @@
 - [x] Implement candidate PoARM v0
 - [x] Add deterministic unit tests
 - [ ] Add published cross-platform test vectors
+- [x] Implement experimental PoARM candidate variants A/B/C
+- [x] Add canonical transaction/block-header hashing helpers
 - [ ] Benchmark ARM64
 - [ ] Benchmark x86-64
 - [ ] Measure memory usage
