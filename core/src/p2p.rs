@@ -158,7 +158,7 @@ impl Message {
                 }
             }
             3 | 5 => {
-                let count = reader.read_u32_le()? as usize;
+                let count = checked_count(reader.read_u32_le()?)?;
                 let mut payloads = Vec::with_capacity(count);
                 for _ in 0..count {
                     payloads.push(read_bounded_bytes(&mut reader)?);
@@ -170,7 +170,7 @@ impl Message {
                 }
             }
             6 => {
-                let count = reader.read_u32_le()? as usize;
+                let count = checked_count(reader.read_u32_le()?)?;
                 let mut hashes = Vec::with_capacity(count);
                 for _ in 0..count {
                     hashes.push(Hash32(reader.read_array()?));
