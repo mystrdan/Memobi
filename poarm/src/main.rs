@@ -8,8 +8,8 @@ fn main() {
     let samples = 100u64;
 
     let started = Instant::now();
-
     let mut accumulator = [0u8; 32];
+
     for nonce in 0..samples {
         let result = work(seed, nonce, config);
         for (a, b) in accumulator.iter_mut().zip(result) {
@@ -23,10 +23,10 @@ fn main() {
 
     println!("PoARM laboratory benchmark");
     println!("version: {}", memobi_poarm::VERSION);
-    println!("memory: {} KiB", config.memory_kib);
+    println!("memory_kib: {}", config.memory_kib);
     println!("rounds: {}", config.rounds);
     println!("samples: {}", samples);
-    println!("elapsed: {:.3} s", seconds);
-    println!("rate: {:.2} work/s", rate);
+    println!("elapsed_seconds: {:.6}", seconds);
+    println!("work_per_second: {:.3}", rate);
     println!("checksum: {:02x?}", accumulator);
 }
