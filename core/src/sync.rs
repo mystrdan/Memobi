@@ -44,7 +44,11 @@ impl SyncProgress {
         } else {
             SyncState::HeaderSync
         };
-        Self { state, local_height, best_known_height }
+        Self {
+            state,
+            local_height,
+            best_known_height,
+        }
     }
 
     pub fn update_best_height(&mut self, best_known_height: u64) {

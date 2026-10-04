@@ -50,10 +50,16 @@ mod tests {
         let tx = Transaction {
             version: 1,
             inputs: vec![crate::TxInput {
-                previous_output: crate::OutPoint { txid: Hash32([7; 32]), index: 0 },
+                previous_output: crate::OutPoint {
+                    txid: Hash32([7; 32]),
+                    index: 0,
+                },
                 unlocking_data: b"sig".to_vec(),
             }],
-            outputs: vec![crate::TxOutput { value: 10, spending_condition: b"condition".to_vec() }],
+            outputs: vec![crate::TxOutput {
+                value: 10,
+                spending_condition: b"condition".to_vec(),
+            }],
             fee: 0,
         };
         let template = BlockTemplate {
@@ -67,6 +73,9 @@ mod tests {
         };
         let block = template.build(vec![tx]).unwrap();
         assert_eq!(block.header.height, BlockHeight(1));
-        assert_eq!(block.header.transaction_root, transaction_root(&block.transactions).unwrap());
+        assert_eq!(
+            block.header.transaction_root,
+            transaction_root(&block.transactions).unwrap()
+        );
     }
 }
