@@ -3,7 +3,11 @@
 //! The exact consensus fields remain under active design; this module gives
 //! the project a deterministic skeleton without freezing PoARM or economics.
 
-use crate::{codec::{put_u32_le, put_u64_le, Encode}, hash::sha256, Hash32, BlockHeight, ProtocolError};
+use crate::{
+    codec::{put_u32_le, put_u64_le, Encode},
+    hash::sha256,
+    BlockHeight, Hash32, ProtocolError,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct BlockHeader {
