@@ -63,5 +63,6 @@ mod tests {
         let encoded = header.encode_to_vec().unwrap();
         assert_eq!(encoded.len(), 104);
         assert_eq!(encoded, header.encode_to_vec().unwrap());
+        assert_eq!(header.block_id().unwrap(), sha256(&encoded));
     }
 }
