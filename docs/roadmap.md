@@ -14,7 +14,7 @@
 - [x] Prepare Android ARM64 integration direction
 - [ ] Freeze transaction serialization
 - [ ] Freeze block serialization
-- [ ] Define chain-selection rule
+- [x] Define provisional chain-selection laboratory rule
 - [ ] Define difficulty adjustment
 - [ ] Define emission schedule
 - [ ] Define address encoding
@@ -41,16 +41,19 @@
 
 - [x] Begin blockchain data structures
 - [x] Provisional deterministic genesis builder
+- [x] Add provisional devnet block builder
 - [ ] Genesis block
 - [x] Transaction validation skeleton
 - [x] UTXO set skeleton
 - [ ] Block validation
+- [x] Add provisional cumulative-work scoring
 - [ ] PoARM mining
 - [x] Difficulty-adjustment laboratory model
 - [ ] Difficulty adjustment
 - [x] P2P message serialization skeleton
+- [x] Add bounded P2P collection/payload decoding
 - [ ] P2P networking
-- [ ] Chain synchronization
+- [x] Add provisional synchronization state and locator
 - [x] Wallet key-selection requirements
 - [ ] Wallet and key handling
 - [ ] CLI node and miner
