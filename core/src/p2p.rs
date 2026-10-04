@@ -197,6 +197,12 @@ mod tests {
             Message::Headers {
                 headers: vec![b"header".to_vec()],
             },
+            Message::GetBlocks {
+                locator: vec![Hash32([4u8; 32])],
+            },
+            Message::Blocks {
+                blocks: vec![b"block".to_vec()],
+            },
             Message::Inv {
                 hashes: vec![Hash32([2u8; 32]), Hash32([3u8; 32])],
             },
