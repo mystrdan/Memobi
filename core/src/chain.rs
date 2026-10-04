@@ -27,6 +27,7 @@ pub enum ChainError {
     InvalidPreviousBlock,
     HeightMismatch,
     InvalidTransactionRoot,
+    InvalidHeader(crate::validation::BlockValidationError),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -37,6 +38,13 @@ pub struct ChainState {
 }
 
 impl ChainState {
+    /// Validate header-level proof rules and then apply UTXO state transitions.
+    pub fn apply_validated_block(&mut self, block: &Block, proof: Hash32) -> Result<Hash32, ChainError> {
+        crate::validation::validate_block_header(self, block, proof)
+            .map_err(ChainError::InvalidHeader)?;
+        self.apply_block(block)
+    }
+
     pub fn apply_block(&mut self, block: &Block) -> Result<Hash32, ChainError> {
         if block.transactions.is_empty() {
             return Err(ChainError::EmptyBlock);
