@@ -7,6 +7,7 @@ use crate::{
     BlockHeight, ProtocolError,
     codec::{Encode, put_u32_le, put_u64_le},
     hash::{Hash32, sha256},
+    transaction::Transaction,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,6 +36,35 @@ impl Encode for BlockHeader {
     }
 }
 
+/// Compute a deterministic binary Merkle-style root for transaction IDs.
+///
+/// This helper is suitable for devnet experiments. The exact tree construction
+/// remains subject to consensus review before mainnet serialization is frozen.
+pub fn transaction_root(transactions: &[Transaction]) -> Result<Hash32, ProtocolError> {
+    if transactions.is_empty() {
+        return Ok(Hash32::ZERO);
+    }
+
+    let mut level = transactions
+        .iter()
+        .map(Transaction::txid)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    while level.len() > 1 {
+        let mut next = Vec::with_capacity(level.len().div_ceil(2));
+        for pair in level.chunks(2) {
+            let right = pair.get(1).copied().unwrap_or(pair[0]);
+            let mut bytes = Vec::with_capacity(64);
+            bytes.extend_from_slice(pair[0].as_bytes());
+            bytes.extend_from_slice(right.as_bytes());
+            next.push(sha256(&bytes));
+        }
+        level = next;
+    }
+
+    Ok(level[0])
+}
+
 impl BlockHeader {
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
         let mut out = Vec::with_capacity(4 + 32 + 8 + 8 + 8 + 4 + 8 + 32);
@@ -51,6 +81,28 @@ impl BlockHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn transaction_root_is_deterministic() {
+        let tx = Transaction {
+            version: 1,
+            inputs: vec![crate::TxInput {
+                previous_output: crate::OutPoint {
+                    txid: Hash32([7u8; 32]),
+                    index: 0,
+                },
+                unlocking_data: b"sig".to_vec(),
+            }],
+            outputs: vec![crate::TxOutput {
+                value: 10,
+                spending_condition: b"condition".to_vec(),
+            }],
+            fee: 0,
+        };
+        let root = transaction_root(std::slice::from_ref(&tx)).unwrap();
+        assert_eq!(root, tx.txid().unwrap());
+        assert_eq!(root, transaction_root(&[tx]).unwrap());
+    }
 
     #[test]
     fn header_encoding_is_fixed_and_deterministic() {
