@@ -5,7 +5,7 @@
 
 use std::collections::HashMap;
 
-use crate::{OutPoint, Transaction};
+use crate::{Transaction, transaction::OutPoint};
 
 pub type UtxoSet = HashMap<OutPoint, UtxoEntry>;
 
@@ -26,7 +26,6 @@ pub enum ValidationError {
     OutputValueOverflow,
     FeeValueOverflow,
     ValueMismatch { inputs: u64, outputs_and_fee: u64 },
-    InvalidFee,
 }
 
 pub fn validate_transaction(tx: &Transaction, utxos: &UtxoSet) -> Result<(), ValidationError> {
@@ -79,7 +78,7 @@ pub fn validate_transaction(tx: &Transaction, utxos: &UtxoSet) -> Result<(), Val
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OutPoint, TxInput, TxOutput, hash::Hash32};
+    use crate::{TxInput, TxOutput, hash::Hash32};
 
     fn outpoint(index: u32) -> OutPoint {
         OutPoint {
