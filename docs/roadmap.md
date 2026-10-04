@@ -41,12 +41,15 @@
 
 - [x] Begin blockchain data structures
 - [x] Provisional deterministic genesis builder
+- [x] Provisional mining block builder with coinbase
 - [x] Add provisional devnet block builder
 - [ ] Genesis block
+- [x] Provisional coinbase/reward validation boundary
 - [x] Transaction validation skeleton
 - [x] UTXO set skeleton
 - [ ] Block validation
 - [x] Add provisional cumulative-work scoring
+- [x] PoARM header-seed construction
 - [ ] PoARM mining
 - [x] Difficulty-adjustment laboratory model
 - [ ] Difficulty adjustment
