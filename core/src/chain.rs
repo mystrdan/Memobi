@@ -78,7 +78,9 @@ impl ChainState {
                 return Err(ChainError::DuplicateTransaction);
             }
 
-            validate_transaction(tx, &staged_utxos).map_err(ChainError::InvalidTransaction)?;
+            if !(block.header.height.0 > 0 && tx.is_coinbase() && tx.inputs.is_empty()) {
+                validate_transaction(tx, &staged_utxos).map_err(ChainError::InvalidTransaction)?;
+            }
 
             for input in &tx.inputs {
                 staged_utxos.remove(&input.previous_output);
