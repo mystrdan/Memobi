@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "core",
+    "poarm",
+]
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+version = "0.1.0"
