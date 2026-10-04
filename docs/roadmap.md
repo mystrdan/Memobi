@@ -6,6 +6,12 @@
 - [x] Choose Rust for core implementation
 - [x] Define PoARM research objective
 - [x] Choose UTXO direction
+- [x] Establish deterministic encoding skeleton
+- [x] Establish protocol test-vector format
+- [x] Draft P2P architecture
+- [x] Draft cryptography/addressing requirements
+- [x] Draft difficulty-adjustment requirements
+- [x] Prepare Android ARM64 integration direction
 - [ ] Freeze transaction serialization
 - [ ] Freeze block serialization
 - [ ] Define chain-selection rule
@@ -16,10 +22,11 @@
 
 ## Phase 1 — PoARM laboratory
 
-- [ ] Create Rust workspace
-- [ ] Implement benchmark harness
-- [ ] Implement candidate PoARM
-- [ ] Add deterministic test vectors
+- [x] Create Rust workspace
+- [x] Implement benchmark harness
+- [x] Implement candidate PoARM v0
+- [x] Add deterministic unit tests
+- [ ] Add published cross-platform test vectors
 - [ ] Benchmark ARM64
 - [ ] Benchmark x86-64
 - [ ] Measure memory usage
@@ -30,7 +37,7 @@
 
 ## Phase 2 — Devnet
 
-- [ ] Blockchain data structures
+- [x] Begin blockchain data structures
 - [ ] Genesis block
 - [ ] Transaction validation
 - [ ] UTXO set
@@ -44,7 +51,8 @@
 
 ## Phase 3 — Android alpha
 
-- [ ] Rust core compiled for Android
+- [x] Define Rust/Android ARM64 preparation path
+- [ ] Compile Rust core for Android
 - [ ] Wallet
 - [ ] Sync
 - [ ] Mining controls
