@@ -1,7 +1,12 @@
 //! Memobi protocol primitives.
 //!
-//! Consensus-critical functionality will be added here incrementally.
-//! The public API is intentionally small while the protocol is experimental.
+//! Consensus-critical functionality is being added incrementally. Public APIs
+//! stay small while the protocol remains experimental.
+
+pub mod block;
+pub mod codec;
+pub mod hash;
+pub mod transaction;
 
 pub const COIN: u64 = 100_000_000;
 pub const MEMO_DECIMALS: u32 = 8;
@@ -14,4 +19,11 @@ pub struct Amount(pub u64);
 
 impl Amount {
     pub const ZERO: Self = Self(0);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProtocolError {
+    UnexpectedEof,
+    TrailingBytes,
+    LengthOverflow,
 }
