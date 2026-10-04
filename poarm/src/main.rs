@@ -49,7 +49,7 @@ fn main() {
     println!();
     println!("Devnet mining smoke test");
     let mut chain = ChainState::default();
-    let genesis = build_genesis(GenesisConfig::provisional()).expect("genesis");
+    let genesis = build_genesis(GenesisConfig::provisional());
     chain.apply_block(&genesis).expect("apply genesis");
     println!("  genesis_height: {}", chain.height.unwrap());
 
