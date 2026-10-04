@@ -4,7 +4,9 @@
 //! stay small while the protocol remains experimental.
 
 pub mod block;
+pub mod block_builder;
 pub mod chain;
+pub mod chainwork;
 pub mod codec;
 pub mod difficulty;
 pub mod genesis;
@@ -12,6 +14,7 @@ pub mod hash;
 pub mod p2p;
 pub mod pow;
 pub mod reward;
+pub mod sync;
 pub mod transaction;
 pub mod utxo;
 
