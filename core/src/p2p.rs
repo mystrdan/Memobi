@@ -44,6 +44,24 @@ pub enum Message {
 }
 
 const VERSION: u8 = 1;
+const MAX_COLLECTION_ITEMS: usize = 4_096;
+const MAX_MESSAGE_PAYLOAD_BYTES: usize = 2 * 1024 * 1024;
+
+fn checked_count(count: u32) -> Result<usize, ProtocolError> {
+    let count = count as usize;
+    if count > MAX_COLLECTION_ITEMS {
+        return Err(ProtocolError::InvalidMessageSize);
+    }
+    Ok(count)
+}
+
+fn read_bounded_bytes(reader: &mut Reader<'_>) -> Result<Vec<u8>, ProtocolError> {
+    let len = reader.read_u32_le()? as usize;
+    if len > MAX_MESSAGE_PAYLOAD_BYTES {
+        return Err(ProtocolError::InvalidMessageSize);
+    }
+    Ok(reader.read_bytes(len)?.to_vec())
+}
 
 impl Message {
     pub fn kind(&self) -> u8 {
@@ -128,7 +146,7 @@ impl Message {
             },
             1 => Self::Verack,
             2 | 4 => {
-                let count = reader.read_u32_le()? as usize;
+                let count = checked_count(reader.read_u32_le()?)?;
                 let mut locator = Vec::with_capacity(count);
                 for _ in 0..count {
                     locator.push(Hash32(reader.read_array()?));
@@ -143,7 +161,7 @@ impl Message {
                 let count = reader.read_u32_le()? as usize;
                 let mut payloads = Vec::with_capacity(count);
                 for _ in 0..count {
-                    payloads.push(crate::codec::read_bytes_u32(&mut reader)?.to_vec());
+                    payloads.push(read_bounded_bytes(&mut reader)?);
                 }
                 if kind == 3 {
                     Self::Headers { headers: payloads }
@@ -160,7 +178,7 @@ impl Message {
                 Self::Inv { hashes }
             }
             7 => Self::Tx {
-                transaction: crate::codec::read_bytes_u32(&mut reader)?.to_vec(),
+                transaction: read_bounded_bytes(&mut reader)?,
             },
             8 | 9 => {
                 let nonce = u64::from_le_bytes(reader.read_array()?);
@@ -183,6 +201,20 @@ mod tests {
     use super::*;
 
     #[test]
+    #[test]
+    fn oversized_collection_is_rejected() {
+        let mut bytes = vec![VERSION, 2];
+        bytes.extend_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(Message::decode(&bytes), Err(ProtocolError::InvalidMessageSize));
+    }
+
+    #[test]
+    fn oversized_payload_is_rejected() {
+        let mut bytes = vec![VERSION, 7];
+        bytes.extend_from_slice(&(2 * 1024 * 1024 + 1u32).to_le_bytes());
+        assert_eq!(Message::decode(&bytes), Err(ProtocolError::InvalidMessageSize));
+    }
+
     fn message_round_trip() {
         let messages = [
             Message::Version {
