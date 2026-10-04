@@ -37,4 +37,5 @@ pub enum ProtocolError {
     LengthOverflow,
     InvalidMessageVersion,
     InvalidMessageType,
+    InvalidMessageSize,
 }
