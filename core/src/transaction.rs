@@ -80,6 +80,12 @@ impl Encode for Transaction {
 }
 
 impl Transaction {
+    /// Coinbase transactions have no inputs and are created by block production.
+    /// This is provisional until a dedicated transaction kind is frozen.
+    pub fn is_coinbase(&self) -> bool {
+        self.inputs.is_empty()
+    }
+
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
         let mut out = Vec::new();
         self.encode(&mut out)?;
