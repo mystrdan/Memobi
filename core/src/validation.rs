@@ -19,6 +19,53 @@ pub enum BlockValidationError {
     InvalidTransactionRoot,
     InvalidProof,
     InvalidTarget,
+    MissingCoinbase,
+    MultipleCoinbase,
+    InvalidCoinbase,
+    RewardOverflow,
+    ExcessiveReward,
+}
+
+fn is_coinbase(tx: &crate::Transaction) -> bool {
+    tx.inputs.is_empty() && !tx.outputs.is_empty()
+}
+
+fn validate_coinbase(block: &Block, state: &ChainState) -> Result<(), BlockValidationError> {
+    let Some((first, rest)) = block.transactions.split_first() else {
+        return Err(BlockValidationError::MissingCoinbase);
+    };
+    if !is_coinbase(first) {
+        return Err(BlockValidationError::MissingCoinbase);
+    }
+    if rest.iter().any(is_coinbase) {
+        return Err(BlockValidationError::MultipleCoinbase);
+    }
+    if first.fee != 0 || first.outputs.iter().any(|output| output.value == 0) {
+        return Err(BlockValidationError::InvalidCoinbase);
+    }
+    let mut fees = 0u64;
+    for tx in rest {
+        let mut input_total = 0u64;
+        for input in &tx.inputs {
+            let Some(entry) = state.utxos.get(&input.previous_output) else {
+                continue;
+            };
+            input_total = input_total.checked_add(entry.value).ok_or(BlockValidationError::RewardOverflow)?;
+        }
+        let output_total = tx.outputs.iter().try_fold(0u64, |sum, output| {
+            sum.checked_add(output.value).ok_or(BlockValidationError::RewardOverflow)
+        })?;
+        fees = fees.checked_add(input_total.checked_sub(output_total).unwrap_or(0)).ok_or(BlockValidationError::RewardOverflow)?;
+    }
+    let subsidy = crate::reward::block_subsidy(block.header.height.0, crate::reward::RewardConfig::provisional());
+    let allowed = subsidy.checked_add(fees).ok_or(BlockValidationError::RewardOverflow)?;
+    let coinbase_value = first.outputs.iter().try_fold(0u64, |sum, output| {
+        sum.checked_add(output.value).ok_or(BlockValidationError::RewardOverflow)
+    })?;
+    if coinbase_value > allowed {
+        return Err(BlockValidationError::ExcessiveReward);
+    }
+    Ok(())
 }
 
 pub fn validate_block_header(
@@ -32,6 +79,7 @@ pub fn validate_block_header(
     if block.header.target == 0 {
         return Err(BlockValidationError::InvalidTarget);
     }
+    validate_coinbase(block, state)?;
     let expected_root = crate::block::transaction_root(&block.transactions)
         .map_err(|_| BlockValidationError::InvalidTransactionRoot)?;
     if expected_root != block.header.transaction_root {
