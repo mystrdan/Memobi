@@ -53,4 +53,4 @@ A devnet milestone is successful when two independent Rust processes can:
 
 ## Next implementation
 
-The next code should add a minimal Coinbase/reward distinction and a deterministic genesis constructor before wiring a full mining loop.
+The first end-to-end smoke test now connects deterministic genesis, provisional coinbase/reward construction, PoARM nonce search, target validation, block validation, UTXO application, and block-ID generation.\n\nThe next step is a deterministic multi-block producer that can exercise difficulty adjustment, chain selection, reorgs, and synchronization.
