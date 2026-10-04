@@ -10,7 +10,9 @@ where
     let mut accumulator = [0u8; 32];
     for nonce in 0..samples {
         let result = f(nonce);
-        for (a, b) in accumulator.iter_mut().zip(result) { *a ^= b; }
+        for (a, b) in accumulator.iter_mut().zip(result) {
+            *a ^= b;
+        }
     }
     let elapsed = started.elapsed();
     let seconds = elapsed.as_secs_f64();
@@ -33,7 +35,13 @@ fn main() {
     println!("samples: {}", samples);
     println!("epoch_for_candidate_c: {}", epoch);
     println!();
-    benchmark("candidate_a_baseline", samples, |nonce| work(seed, nonce, config));
-    benchmark("candidate_b_dependency_chain", samples, |nonce| work_candidate_b(seed, nonce, config));
-    benchmark("candidate_c_epoch_parameterized", samples, |nonce| work_candidate_c(seed, nonce, epoch, config));
+    benchmark("candidate_a_baseline", samples, |nonce| {
+        work(seed, nonce, config)
+    });
+    benchmark("candidate_b_dependency_chain", samples, |nonce| {
+        work_candidate_b(seed, nonce, config)
+    });
+    benchmark("candidate_c_epoch_parameterized", samples, |nonce| {
+        work_candidate_c(seed, nonce, epoch, config)
+    });
 }
