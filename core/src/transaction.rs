@@ -4,9 +4,9 @@
 //! the cryptographic/addressing design is finalized.
 
 use crate::{
-    Hash32, ProtocolError,
+    ProtocolError,
     codec::{Encode, Reader, put_bytes, put_u32_le, put_u64_le, read_bytes_u32},
-    hash::sha256,
+    hash::{Hash32, sha256},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -59,18 +59,17 @@ impl Encode for TxOutput {
 
 impl Encode for Transaction {
     fn encode(&self, out: &mut Vec<u8>) -> Result<(), ProtocolError> {
-        put_u32_le(out, self.version);
         put_u32_le(
             out,
             u32::try_from(self.inputs.len()).map_err(|_| ProtocolError::LengthOverflow)?,
-        )?;
+        );
         for input in &self.inputs {
             input.encode(out)?;
         }
         put_u32_le(
             out,
             u32::try_from(self.outputs.len()).map_err(|_| ProtocolError::LengthOverflow)?,
-        )?;
+        );
         for output in &self.outputs {
             output.encode(out)?;
         }
