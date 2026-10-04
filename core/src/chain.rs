@@ -66,9 +66,8 @@ impl ChainState {
             }
 
             for (index, output) in tx.outputs.iter().enumerate() {
-                let index = u32::try_from(index).map_err(|_| ChainError::Serialization(
-                    crate::ProtocolError::LengthOverflow,
-                ))?;
+                let index = u32::try_from(index)
+                    .map_err(|_| ChainError::Serialization(crate::ProtocolError::LengthOverflow))?;
                 staged_utxos.insert(
                     OutPoint { txid, index },
                     UtxoEntry {
