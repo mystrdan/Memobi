@@ -50,6 +50,7 @@
 - [ ] Block validation
 - [x] Add provisional cumulative-work scoring
 - [x] PoARM header-seed construction
+- [x] End-to-end PoARM devnet mining smoke test
 - [ ] PoARM mining
 - [x] Difficulty-adjustment laboratory model
 - [ ] Difficulty adjustment
