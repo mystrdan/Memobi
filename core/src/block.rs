@@ -4,9 +4,9 @@
 //! the project a deterministic skeleton without freezing PoARM or economics.
 
 use crate::{
-    codec::{put_u32_le, put_u64_le, Encode},
-    hash::sha256,
     BlockHeight, Hash32, ProtocolError,
+    codec::{Encode, put_u32_le, put_u64_le},
+    hash::sha256,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
