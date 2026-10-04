@@ -23,6 +23,7 @@ pub enum ChainError {
     EmptyBlock,
     InvalidTransaction(crate::utxo::ValidationError),
     DuplicateTransaction,
+    Serialization(crate::ProtocolError),
     InvalidPreviousBlock,
     HeightMismatch,
 }
@@ -50,27 +51,26 @@ impl ChainState {
         }
 
         let mut txids = HashSet::with_capacity(block.transactions.len());
+        let mut staged_utxos = self.utxos.clone();
+
         for tx in &block.transactions {
-            let txid = tx.txid().map_err(|_| ChainError::DuplicateTransaction)?;
+            let txid = tx.txid().map_err(ChainError::Serialization)?;
             if !txids.insert(txid) {
                 return Err(ChainError::DuplicateTransaction);
             }
-            validate_transaction(tx, &self.utxos).map_err(ChainError::InvalidTransaction)?;
-        }
 
-        for tx in &block.transactions {
+            validate_transaction(tx, &staged_utxos).map_err(ChainError::InvalidTransaction)?;
+
             for input in &tx.inputs {
-                self.utxos.remove(&input.previous_output);
+                staged_utxos.remove(&input.previous_output);
             }
 
-            let txid = tx.txid().map_err(|_| ChainError::DuplicateTransaction)?;
-
             for (index, output) in tx.outputs.iter().enumerate() {
-                self.utxos.insert(
-                    OutPoint {
-                        txid,
-                        index: index as u32,
-                    },
+                let index = u32::try_from(index).map_err(|_| ChainError::Serialization(
+                    crate::ProtocolError::LengthOverflow,
+                ))?;
+                staged_utxos.insert(
+                    OutPoint { txid, index },
                     UtxoEntry {
                         value: output.value,
                         spending_condition: output.spending_condition.clone(),
@@ -79,11 +79,9 @@ impl ChainState {
             }
         }
 
-        let id = block
-            .header
-            .block_id()
-            .map_err(|_| ChainError::DuplicateTransaction)?;
+        let id = block.header.block_id().map_err(ChainError::Serialization)?;
 
+        self.utxos = staged_utxos;
         self.tip = Some(id);
         self.height = Some(block.header.height.0);
 
@@ -95,25 +93,108 @@ impl ChainState {
 mod tests {
     use super::*;
 
-    #[test]
-    fn empty_block_is_rejected() {
-        let header = BlockHeader {
+    fn header(height: u64, previous_block: Hash32) -> BlockHeader {
+        BlockHeader {
             version: 1,
-            previous_block: Hash32::ZERO,
-            height: crate::BlockHeight(0),
-            timestamp: 0,
+            previous_block,
+            height: crate::BlockHeight(height),
+            timestamp: height,
             target: u64::MAX,
             poarm_version: 0,
-            poarm_nonce: 0,
+            poarm_nonce: height,
             transaction_root: Hash32::ZERO,
-        };
+        }
+    }
 
+    fn spend(previous_output: OutPoint, value: u64, output_condition: &[u8]) -> Transaction {
+        Transaction {
+            version: 1,
+            inputs: vec![crate::TxInput {
+                previous_output,
+                unlocking_data: Vec::new(),
+            }],
+            outputs: vec![crate::TxOutput {
+                value,
+                spending_condition: output_condition.to_vec(),
+            }],
+            fee: 0,
+        }
+    }
+
+    #[test]
+    fn empty_block_is_rejected() {
         assert_eq!(
             ChainState::default().apply_block(&Block {
-                header,
+                header: header(0, Hash32::ZERO),
                 transactions: vec![],
             }),
             Err(ChainError::EmptyBlock)
         );
+    }
+
+    #[test]
+    fn transactions_can_spend_outputs_created_earlier_in_the_block() {
+        let seed_tx = Transaction {
+            version: 1,
+            inputs: vec![crate::TxInput {
+                previous_output: OutPoint {
+                    txid: Hash32([9u8; 32]),
+                    index: 0,
+                },
+                unlocking_data: Vec::new(),
+            }],
+            outputs: vec![crate::TxOutput {
+                value: 100,
+                spending_condition: b"seed".to_vec(),
+            }],
+            fee: 0,
+        };
+
+        let seed_id = seed_tx.txid().unwrap();
+        let seed_outpoint = OutPoint {
+            txid: seed_id,
+            index: 0,
+        };
+
+        let mut state = ChainState::default();
+        state.utxos.insert(
+            OutPoint {
+                txid: Hash32([8u8; 32]),
+                index: 0,
+            },
+            UtxoEntry {
+                value: 100,
+                spending_condition: b"funding".to_vec(),
+            },
+        );
+
+        let funding = spend(
+            OutPoint {
+                txid: Hash32([8u8; 32]),
+                index: 0,
+            },
+            100,
+            b"seed",
+        );
+        let funding_id = funding.txid().unwrap();
+        let expected_seed_outpoint = OutPoint {
+            txid: funding_id,
+            index: 0,
+        };
+
+        let follow_up = spend(expected_seed_outpoint, 100, b"final");
+
+        state
+            .apply_block(&Block {
+                header: header(0, Hash32::ZERO),
+                transactions: vec![funding, follow_up],
+            })
+            .unwrap();
+
+        assert!(state.utxos.contains_key(&OutPoint {
+            txid: follow_up.txid().unwrap(),
+            index: 0,
+        }));
+        let _ = seed_outpoint;
     }
 }
