@@ -52,7 +52,7 @@ impl BlockTemplate {
         if self.version != params.block_version
             || self.poarm_version != params.poarm_version
         {
-            return Err(ProtocolError::InvalidMessage);
+            return Err(ProtocolError::InvalidMessageVersion);
         }
         self.build_mining_block_with_tx_version(
             transactions,
