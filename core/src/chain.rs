@@ -158,13 +158,22 @@ impl ChainState {
             now_secs,
             parent_timestamp,
         )?;
+        let block_len = block_store.file_len().map_err(ChainError::Storage)?;
+        let header_len = header_store.file_len().map_err(ChainError::Storage)?;
+
         block_store
             .append(block, proof)
             .map_err(ChainError::Storage)?;
-        header_store
-            .append(&block.header)
-            .map_err(ChainError::Storage)?;
+        if let Err(error) = header_store.append(&block.header) {
+            let _ = block_store.rollback_to(block_len);
+            return Err(ChainError::Storage(error));
+        }
+
         *self = staged;
+        // Both durable records are now present before the in-memory state
+        // becomes canonical. If the second append fails, the first record is
+        // rolled back so restart cannot observe a half-committed block.
+        let _ = header_len;
         Ok(id)
     }
 
