@@ -28,3 +28,7 @@ The implementation is intentionally isolated so those decisions can change witho
 Fork replay is performed against a scratch `ChainState` and is committed only when the candidate chain wins the current chain-selection rule. The parameterized `replay_fork_with_params()` path uses the supplied `ConsensusParams` for every block, while the shorter `replay_fork()` helper remains a devnet convenience wrapper.
 
 This keeps reorganization validation atomic: an invalid fork cannot partially replace canonical UTXO/header state. The current equal-work-by-length behavior remains explicitly devnet/provisional and is not a mainnet consensus commitment.
+
+## Reorganization state safety
+
+There is deliberately no public partial-truncation helper for reorgs. A reorganization must be reconstructed through `replay_fork_with_params()`, which validates the complete candidate from genesis in scratch state and commits the entire resulting `ChainState` atomically. This prevents headers, tip, cumulative work, and UTXOs from becoming inconsistent during a rollback.
