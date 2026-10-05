@@ -64,6 +64,22 @@ fn read_bounded_bytes(reader: &mut Reader<'_>) -> Result<Vec<u8>, ProtocolError>
 }
 
 impl Message {
+    pub fn encode_block(block: &crate::chain::Block, proof: Hash32) -> Result<Vec<u8>, ProtocolError> {
+        let block_bytes = block.encode_to_vec()?;
+        let mut out = Vec::with_capacity(32 + block_bytes.len());
+        out.extend_from_slice(proof.as_bytes());
+        crate::codec::put_bytes(&mut out, &block_bytes)?;
+        Ok(out)
+    }
+
+    pub fn decode_block(bytes: &[u8], params: &crate::params::ConsensusParams) -> Result<(crate::chain::Block, Hash32), ProtocolError> {
+        let mut reader = Reader::new(bytes);
+        let proof = Hash32(reader.read_array()?);
+        let block_bytes = crate::codec::read_bytes_u32(&mut reader)?;
+        reader.finish()?;
+        Ok((crate::chain::Block::decode_bounded(block_bytes, params)?, proof))
+    }
+
     pub fn kind(&self) -> u8 {
         match self {
             Self::Version { .. } => 0,
@@ -290,6 +306,17 @@ mod tests {
         assert_eq!(peer.phase, PeerPhase::Established);
         assert_eq!(peer.remote_nonce, Some(42));
         assert_eq!(peer.remote_height, Some(123));
+    }
+
+    #[test]
+    fn block_envelope_round_trips() {
+        let block = crate::genesis::devnet_genesis();
+        let proof = Hash32([7u8; 32]);
+        let encoded = Message::encode_block(&block, proof).unwrap();
+        let (decoded, decoded_proof) =
+            Message::decode_block(&encoded, &crate::params::ConsensusParams::devnet()).unwrap();
+        assert_eq!(decoded, block);
+        assert_eq!(decoded_proof, proof);
     }
 
     #[test]
