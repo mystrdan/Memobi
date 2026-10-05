@@ -53,4 +53,15 @@ A devnet milestone is successful when two independent Rust processes can:
 
 ## Next implementation
 
-The first end-to-end smoke test now connects deterministic genesis, provisional coinbase/reward construction, PoARM nonce search, target validation, block validation, UTXO application, and block-ID generation.\n\nThe next step is a deterministic multi-block producer that can exercise difficulty adjustment, chain selection, reorgs, and synchronization.
+The repository now has a reusable deterministic multi-block producer in `poarm/src/devnet.rs`. It starts from the real devnet genesis, builds each block from the current chain tip, derives the consensus difficulty target, constructs the real coinbase, mines Candidate C, independently verifies the proof, validates the block, and applies it through `ChainState`.
+
+The producer is deliberately configured with a tiny PoARM workload and deterministic timestamps so it is suitable for repeatable protocol tests rather than performance claims.
+
+It is exercised by unit tests for:
+- multi-block production;
+- deterministic repeated runs;
+- target derivation through the consensus difficulty path.
+
+The command-line PoARM lab now runs this producer after the candidate benchmark and reports the final height, tip, and cumulative work.
+
+The next devnet work is to feed non-trivial target transitions into this producer, then exercise competing branches and synchronization against the same real state-transition code.
