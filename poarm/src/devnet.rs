@@ -127,11 +127,8 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
             poarm_nonce: 0,
         };
 
-        let mut block = template.build_mining_block_with_params(
-            Vec::new(),
-            payout.clone(),
-            &params,
-        )?;
+        let mut block =
+            template.build_mining_block_with_params(Vec::new(), payout.clone(), &params)?;
 
         let seed = block
             .header

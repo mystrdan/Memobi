@@ -49,9 +49,7 @@ impl BlockTemplate {
         payout_condition: Vec<u8>,
         params: &crate::params::ConsensusParams,
     ) -> Result<Block, ProtocolError> {
-        if self.version != params.block_version
-            || self.poarm_version != params.poarm_version
-        {
+        if self.version != params.block_version || self.poarm_version != params.poarm_version {
             return Err(ProtocolError::InvalidMessageVersion);
         }
         self.build_mining_block_with_tx_version(

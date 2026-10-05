@@ -93,11 +93,7 @@ impl BlockHeader {
         self.poarm_seed_with_domain(params.poarm_domain, epoch)
     }
 
-    fn poarm_seed_with_domain(
-        &self,
-        domain: &str,
-        epoch: u64,
-    ) -> Result<Hash32, ProtocolError> {
+    fn poarm_seed_with_domain(&self, domain: &str, epoch: u64) -> Result<Hash32, ProtocolError> {
         let mut bytes = Vec::with_capacity(domain.len() + 4 + 32 + 8 + 8 + 8 + 4 + 32 + 8);
         bytes.extend_from_slice(domain.as_bytes());
         put_u32_le(&mut bytes, self.version);
