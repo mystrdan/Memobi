@@ -90,6 +90,36 @@ impl ChainState {
         self.apply_block_with_params(block, params)
     }
 
+    /// Validate, apply, and durably append the canonical header as one
+    /// state transition. Consensus state is staged first, so a storage error
+    /// cannot leave the in-memory chain advanced while the durable log lags.
+    pub fn apply_validated_block_with_store(
+        &mut self,
+        block: &Block,
+        proof: Hash32,
+        params: &crate::params::ConsensusParams,
+        now_secs: u64,
+        parent_timestamp: Option<u64>,
+        store: &mut crate::storage::HeaderStore,
+    ) -> Result<Hash32, ChainError> {
+        let mut staged = self.clone();
+        let id = staged.apply_validated_block_with_params_and_context(
+            block,
+            proof,
+            params,
+            now_secs,
+            parent_timestamp,
+        )?;
+        store.append(&block.header).map_err(|e| {
+            ChainError::Serialization(match e {
+                crate::storage::StorageError::Protocol(err) => err,
+                _ => crate::ProtocolError::LimitExceeded,
+            })
+        })?;
+        *self = staged;
+        Ok(id)
+    }
+
     pub fn apply_block(&mut self, block: &Block) -> Result<Hash32, ChainError> {
         let id = self.apply_block_with_params(block, &crate::params::ConsensusParams::devnet())?;
         // `apply_block_with_params` stages state but defers tip/work commit
