@@ -49,6 +49,9 @@ fn validate_coinbase(
     if !first.is_coinbase() {
         return Err(BlockValidationError::MissingCoinbase);
     }
+    if first.coinbase_height() != Some(block.header.height.0) {
+        return Err(BlockValidationError::InvalidCoinbase);
+    }
     if rest.iter().any(crate::Transaction::is_coinbase) {
         return Err(BlockValidationError::MultipleCoinbase);
     }
