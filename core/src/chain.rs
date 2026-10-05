@@ -215,9 +215,26 @@ impl ChainState {
     /// `u64::MAX`). Returns `Ok(true)` when the reorg executed. The fork must
     /// start at genesis (`height == 0`, `previous == 0`), which replay enforces.
     pub fn replay_fork(&mut self, fork: &[(Block, Hash32)]) -> Result<bool, ChainError> {
+        self.replay_fork_with_params(fork, &crate::params::ConsensusParams::devnet())
+    }
+
+    /// Replay and conditionally commit a fork using an explicit network
+    /// parameter set. Validation happens entirely in a scratch state, so a
+    /// malformed or non-winning fork leaves the current chain untouched.
+    pub fn replay_fork_with_params(
+        &mut self,
+        fork: &[(Block, Hash32)],
+        params: &crate::params::ConsensusParams,
+    ) -> Result<bool, ChainError> {
         let mut candidate = ChainState::default();
         for (block, proof) in fork {
-            candidate.apply_validated_block(block, *proof)?;
+            candidate.apply_validated_block_with_params_and_context(
+                block,
+                *proof,
+                params,
+                block.header.timestamp,
+                None,
+            )?;
         }
         if candidate.headers.is_empty() {
             return Ok(false);
