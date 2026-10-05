@@ -1,8 +1,8 @@
-//! Persistent canonical-header storage foundation.
+//! Persistent canonical chain storage.
 //!
-//! This layer deliberately stores consensus headers separately from volatile
-//! UTXO state. It provides crash-tolerant append/reopen semantics needed before
-//! full block/state persistence is introduced.
+//! HeaderStore keeps a compact canonical-header log. BlockStore keeps canonical
+//! blocks together with their PoARM proofs. UTXO state remains reconstructible
+//! by replaying the durable block log through consensus validation.
 
 use std::{
     fs::{File, OpenOptions},
