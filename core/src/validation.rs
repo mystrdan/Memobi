@@ -14,6 +14,7 @@ pub enum BlockValidationError {
     TooManyTransactions,
     BlockTooLarge,
     InvalidHeight,
+    InvalidGenesis,
     InvalidPreviousBlock,
     InvalidTransactionRoot,
     InvalidProof,
@@ -147,6 +148,13 @@ pub fn validate_block_header_with_params(
 ) -> Result<(), BlockValidationError> {
     if block.transactions.is_empty() {
         return Err(BlockValidationError::EmptyBlock);
+    }
+    if block.header.height.0 == 0 {
+        let expected_genesis =
+            crate::genesis::build_genesis(crate::genesis::GenesisConfig::from_params(params));
+        if *block != expected_genesis {
+            return Err(BlockValidationError::InvalidGenesis);
+        }
     }
     if block.transactions.len() > params.max_txs_per_block {
         return Err(BlockValidationError::TooManyTransactions);
