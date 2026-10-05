@@ -104,6 +104,17 @@ impl BlockStore {
         self.count
     }
 
+    pub(crate) fn file_len(&self) -> Result<u64, StorageError> {
+        Ok(self.file.metadata()?.len())
+    }
+
+    pub(crate) fn rollback_to(&mut self, len: u64) -> Result<(), StorageError> {
+        self.file.set_len(len)?;
+        self.file.sync_data()?;
+        self.count = self.count.saturating_sub(1);
+        Ok(())
+    }
+
     pub fn append(
         &mut self,
         block: &crate::chain::Block,
@@ -198,6 +209,17 @@ impl HeaderStore {
     }
     pub fn len(&self) -> u64 {
         self.count
+    }
+
+    pub(crate) fn file_len(&self) -> Result<u64, StorageError> {
+        Ok(self.file.metadata()?.len())
+    }
+
+    pub(crate) fn rollback_to(&mut self, len: u64) -> Result<(), StorageError> {
+        self.file.set_len(len)?;
+        self.file.sync_data()?;
+        self.count = self.count.saturating_sub(1);
+        Ok(())
     }
 
     pub fn append(&mut self, header: &BlockHeader) -> Result<(), StorageError> {
