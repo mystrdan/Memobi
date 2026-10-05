@@ -155,6 +155,31 @@ mod tests {
     }
 
     #[test]
+    fn node_accepts_a_real_genesis_envelope_after_handshake() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        node.receive_peer_message(
+            Message::Version {
+                protocol_version: 1,
+                node_nonce: 42,
+                height: 0,
+            },
+            0,
+            None,
+        ).unwrap();
+
+        let genesis = crate::genesis::devnet_genesis();
+        let envelope = Message::encode_block(&genesis, Hash32::ZERO).unwrap();
+        node.receive_peer_message(
+            Message::Blocks { blocks: vec![envelope] },
+            genesis.header.timestamp,
+            None,
+        ).unwrap();
+
+        assert_eq!(node.chain.height, Some(0));
+        assert_eq!(node.chain.tip, Some(genesis.header.block_id().unwrap()));
+    }
+
+    #[test]
     fn node_rejects_blocks_before_handshake() {
         let mut node = Node::new(ConsensusParams::devnet());
         let result = node.receive_peer_message(Message::Blocks { blocks: vec![] }, 0, None);
