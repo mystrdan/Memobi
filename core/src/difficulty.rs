@@ -334,4 +334,36 @@ mod tests {
         let next = next_target(&ts, 1000, &params).unwrap();
         assert_eq!(next, 1100);
     }
+
+    #[test]
+    fn retarget_changes_only_at_exact_window_boundary() {
+        let mut params = ConsensusParams::devnet();
+        params.difficulty_window = 4;
+        params.target_interval_secs = 10;
+        params.min_target = 1;
+        params.max_target = u64::MAX;
+
+        // Three completed intervals are not enough to retarget.
+        let before = vec![0, 5, 10, 15];
+        assert_eq!(next_target(&before, 1_000, 20, &params).unwrap(), 1_000);
+
+        // Four completed intervals are the boundary. Every 5-second interval
+        // is clamped at the configured lower step, producing a 0.5x target.
+        let at_boundary = vec![0, 5, 10, 15, 20];
+        assert_eq!(next_target(&at_boundary, 1_000, 25, &params).unwrap(), 500);
+    }
+
+    #[test]
+    fn retarget_uses_clamped_steps_not_raw_timestamp_jump() {
+        let mut params = ConsensusParams::devnet();
+        params.difficulty_window = 4;
+        params.target_interval_secs = 10;
+        params.min_target = 1;
+        params.max_target = u64::MAX;
+
+        // A single 10,000-second jump cannot make the next target 1,000x
+        // easier: each interval is capped at 20 seconds.
+        let warped = vec![0, 10_000, 10_000, 10_000, 10_000];
+        assert_eq!(next_target(&warped, 1_000, 10_000, &params).unwrap(), 2_000);
+    }
 }
