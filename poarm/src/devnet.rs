@@ -139,7 +139,7 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
 
         let seed = block
             .header
-            .poarm_seed(config.epoch)
+            .poarm_seed_with_params(&params, config.epoch)
             .map_err(|_| DevnetError::InvalidSeed)?;
 
         let mining = search_candidate_c(
