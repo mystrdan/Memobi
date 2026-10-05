@@ -333,6 +333,39 @@ mod tests {
     }
 
     #[test]
+    fn validated_block_can_commit_with_durable_header() {
+        let params = ConsensusParams::devnet();
+        let path = std::env::temp_dir().join(format!(
+            "memobi-chain-store-{}.db",
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let mut store = crate::storage::HeaderStore::open(&path).unwrap();
+        let genesis = crate::genesis::devnet_genesis();
+        let mut state = ChainState::default();
+
+        let id = state
+            .apply_validated_block_with_store(
+                &genesis,
+                Hash32::ZERO,
+                &params,
+                genesis.header.timestamp,
+                None,
+                &mut store,
+            )
+            .unwrap();
+
+        assert_eq!(state.tip, Some(id));
+        assert_eq!(state.height, Some(0));
+        assert_eq!(store.len(), 1);
+        assert_eq!(store.read_all().unwrap(), vec![genesis]);
+
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn empty_block_is_rejected() {
         assert_eq!(
             ChainState::default().apply_block(&Block {
