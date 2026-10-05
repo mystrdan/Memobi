@@ -47,7 +47,10 @@ fn mine_next(
     let found = memobi_poarm::miner::search_candidate_c(
         seed.as_bytes(),
         epoch,
-        memobi_poarm::Config { memory_kib: 1, rounds: 1 },
+        memobi_poarm::Config {
+            memory_kib: 1,
+            rounds: 1,
+        },
         target,
         0,
         100,
@@ -73,7 +76,9 @@ fn multi_block_chain_accepts_and_tracks_work() {
     assert_eq!(chain.headers.len(), 4);
     assert_eq!(chain.work.0, 0);
     // Harder targets contribute work: sanity check scoring separately.
-    assert!(memobi_core::chainwork::block_work(1).0 > memobi_core::chainwork::block_work(u64::MAX).0);
+    assert!(
+        memobi_core::chainwork::block_work(1).0 > memobi_core::chainwork::block_work(u64::MAX).0
+    );
 }
 
 #[test]
@@ -83,7 +88,13 @@ fn double_spend_in_same_block_is_rejected() {
     let miner = miner_sk.public_key();
     let mut chain = ChainState::default();
     chain.apply_block(&devnet_genesis()).unwrap();
-    let (b1, p1) = mine_next(&chain, &params, miner, params.genesis_timestamp + 10, u64::MAX);
+    let (b1, p1) = mine_next(
+        &chain,
+        &params,
+        miner,
+        params.genesis_timestamp + 10,
+        u64::MAX,
+    );
     chain.apply_validated_block(&b1, p1).unwrap();
     for _ in 2u64..=11 {
         let tip_ts = chain.headers.last().unwrap().timestamp;
@@ -91,7 +102,10 @@ fn double_spend_in_same_block_is_rejected() {
         chain.apply_validated_block(&b, p).unwrap();
     }
     let coinbase_txid = b1.transactions[0].txid().unwrap();
-    let op = memobi_core::OutPoint { txid: coinbase_txid, index: 0 };
+    let op = memobi_core::OutPoint {
+        txid: coinbase_txid,
+        index: 0,
+    };
     let mk_spend = |value: u64| {
         let mut tx = memobi_core::Transaction {
             version: 1,
@@ -129,7 +143,11 @@ fn double_spend_in_same_block_is_rejected() {
             },
         )
         .unwrap();
-    assert!(chain.apply_validated_block(&block, Hash32([0u8; 32])).is_err());
+    assert!(
+        chain
+            .apply_validated_block(&block, Hash32([0u8; 32]))
+            .is_err()
+    );
     assert_eq!(chain.height, Some(11));
 }
 
@@ -166,31 +184,42 @@ fn timestamp_and_target_rules_are_enforced() {
         b.header.timestamp = timestamp;
         b.header.target = target;
         // Recompute root unchanged (no tx change); root stays valid.
-        b.header.transaction_root =
-            memobi_core::block::transaction_root(&b.transactions).unwrap();
+        b.header.transaction_root = memobi_core::block::transaction_root(&b.transactions).unwrap();
         b
     };
     let stale = mk(tip_ts - 1, u64::MAX);
     assert_eq!(
         validate_block_header_with_params(
-            &chain, &stale, Hash32([0u8; 32]), &params,
-            tip_ts + 50, Some(tip_ts),
+            &chain,
+            &stale,
+            Hash32([0u8; 32]),
+            &params,
+            tip_ts + 50,
+            Some(tip_ts),
         ),
         Err(BlockValidationError::TimestampTooOld)
     );
     let future = mk(tip_ts + 10_000, u64::MAX);
     assert_eq!(
         validate_block_header_with_params(
-            &chain, &future, Hash32([0u8; 32]), &params,
-            tip_ts + 50, Some(tip_ts),
+            &chain,
+            &future,
+            Hash32([0u8; 32]),
+            &params,
+            tip_ts + 50,
+            Some(tip_ts),
         ),
         Err(BlockValidationError::TimestampTooFar)
     );
     let bad = mk(tip_ts + 10, 0);
     assert_eq!(
         validate_block_header_with_params(
-            &chain, &bad, Hash32([0u8; 32]), &params,
-            tip_ts + 50, Some(tip_ts),
+            &chain,
+            &bad,
+            Hash32([0u8; 32]),
+            &params,
+            tip_ts + 50,
+            Some(tip_ts),
         ),
         Err(BlockValidationError::InvalidTarget)
     );
@@ -342,15 +371,23 @@ fn mempool_transactions_are_assembled_into_blocks() {
     let found = memobi_poarm::miner::search_candidate_c(
         seed.as_bytes(),
         epoch,
-        memobi_poarm::Config { memory_kib: 1, rounds: 1 },
+        memobi_poarm::Config {
+            memory_kib: 1,
+            rounds: 1,
+        },
         u64::MAX,
         0,
         100,
     )
     .unwrap();
     block.header.poarm_nonce = found.nonce;
-    chain.apply_validated_block(&block, Hash32(found.proof)).unwrap();
-    assert!(chain.utxos.contains_key(&memobi_core::OutPoint { txid: spend_txid, index: 0 }));
+    chain
+        .apply_validated_block(&block, Hash32(found.proof))
+        .unwrap();
+    assert!(chain.utxos.contains_key(&memobi_core::OutPoint {
+        txid: spend_txid,
+        index: 0
+    }));
     assert!(!chain.utxos.contains_key(&op));
 }
 
@@ -400,4 +437,3 @@ fn replay_fork_switches_to_heavier_chain() {
     assert_eq!(main.height, Some(4));
     assert_eq!(main.tip, fork.tip);
 }
-

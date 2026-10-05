@@ -104,7 +104,10 @@ mod tests {
         assert_eq!(g, devnet_genesis());
         // Chain identity binds network + height + timestamp + target.
         assert_eq!(g.header.height.0, 0);
-        assert_eq!(g.header.timestamp, ConsensusParams::devnet().genesis_timestamp);
+        assert_eq!(
+            g.header.timestamp,
+            ConsensusParams::devnet().genesis_timestamp
+        );
         assert_eq!(g.header.target, ConsensusParams::devnet().genesis_target);
     }
 }

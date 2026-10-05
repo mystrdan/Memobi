@@ -53,4 +53,3 @@ pub enum ProtocolError {
     InvalidPublicKey,
     InvalidTarget,
 }
-

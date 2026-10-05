@@ -1,7 +1,13 @@
 use std::time::Instant;
 
-use memobi_core::{BlockHeight, Hash32, chain::ChainState, genesis::{GenesisConfig, build_genesis}, reward::RewardConfig, block_builder::BlockTemplate};
-use memobi_poarm::{Config, work, work_candidate_b, work_candidate_c, miner::search_candidate_c};
+use memobi_core::{
+    BlockHeight, Hash32,
+    block_builder::BlockTemplate,
+    chain::ChainState,
+    genesis::{GenesisConfig, build_genesis},
+    reward::RewardConfig,
+};
+use memobi_poarm::{Config, miner::search_candidate_c, work, work_candidate_b, work_candidate_c};
 
 fn benchmark<F>(name: &str, samples: u64, mut f: F)
 where
@@ -65,14 +71,21 @@ fn main() {
     };
     let epoch = template.height.0;
     let mut block = template
-        .build_mining_block(Vec::new(), miner_pubkey.to_vec(), RewardConfig::provisional())
+        .build_mining_block(
+            Vec::new(),
+            miner_pubkey.to_vec(),
+            RewardConfig::provisional(),
+        )
         .expect("template");
 
     let seed_hash = block.header.poarm_seed(epoch).expect("seed");
     let mining = search_candidate_c(
         seed_hash.as_bytes(),
         epoch,
-        Config { memory_kib: 1, rounds: 1 },
+        Config {
+            memory_kib: 1,
+            rounds: 1,
+        },
         block.header.target,
         0,
         10_000,
@@ -83,7 +96,10 @@ fn main() {
     assert!(memobi_poarm::miner::verify_candidate_c(
         seed_hash.as_bytes(),
         epoch,
-        Config { memory_kib: 1, rounds: 1 },
+        Config {
+            memory_kib: 1,
+            rounds: 1
+        },
         block.header.target,
         mining.nonce,
         &mining.proof,

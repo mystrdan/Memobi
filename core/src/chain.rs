@@ -94,7 +94,9 @@ impl ChainState {
             let enc = tx.encode_to_vec().map_err(ChainError::Serialization)?;
             block_bytes = block_bytes
                 .checked_add(enc.len())
-                .ok_or(ChainError::Serialization(crate::ProtocolError::LengthOverflow))?;
+                .ok_or(ChainError::Serialization(
+                    crate::ProtocolError::LengthOverflow,
+                ))?;
         }
         if block_bytes > params.max_block_bytes {
             return Err(ChainError::BlockTooLarge);
@@ -199,8 +201,7 @@ impl ChainState {
         }
         let wins = self.headers.is_empty()
             || self.should_reorg(candidate.work)
-            || (candidate.work == self.work
-                && candidate.headers.len() > self.headers.len());
+            || (candidate.work == self.work && candidate.headers.len() > self.headers.len());
         if wins {
             *self = candidate;
         }
@@ -281,8 +282,7 @@ mod tests {
             }],
             fee: 0,
         };
-        tx.inputs[0].unlocking_data =
-            crate::crypto::authorize_input(&tx, 0, sk, params).unwrap();
+        tx.inputs[0].unlocking_data = crate::crypto::authorize_input(&tx, 0, sk, params).unwrap();
         tx
     }
 

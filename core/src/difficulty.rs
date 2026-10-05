@@ -175,11 +175,7 @@ pub fn next_target(
         last_timestamp: slice[0].saturating_add(clamped_elapsed),
         blocks: params.difficulty_window,
     };
-    let res = adjust_target(
-        current_target,
-        obs,
-        DifficultyConfig::from_params(params),
-    )?;
+    let res = adjust_target(current_target, obs, DifficultyConfig::from_params(params))?;
     // Enforce absolute network bounds.
     Ok(res.new_target.clamp(params.min_target, params.max_target))
 }
@@ -220,14 +216,18 @@ mod tests {
             params.genesis_target
         );
         // Below the retarget boundary: carry the tip target forward.
-        let history: Vec<u64> = (0u64..59).map(|i| i * params.target_interval_secs).collect();
+        let history: Vec<u64> = (0u64..59)
+            .map(|i| i * params.target_interval_secs)
+            .collect();
         assert_eq!(
             next_block_target(&history, Some(u64::MAX), 1_000, &params).unwrap(),
             u64::MAX
         );
         // Window boundary (60 historical + candidate = 61): retarget using
         // per-step clamped elapsed; 5s steps (clamped min) halve the target.
-        let fast: Vec<u64> = (0u64..60).map(|i| i * (params.target_interval_secs / 2)).collect();
+        let fast: Vec<u64> = (0u64..60)
+            .map(|i| i * (params.target_interval_secs / 2))
+            .collect();
         let candidate_ts = *fast.last().unwrap() + params.target_interval_secs / 2;
         assert_eq!(
             next_block_target(&fast, Some(u64::MAX), candidate_ts, &params).unwrap(),

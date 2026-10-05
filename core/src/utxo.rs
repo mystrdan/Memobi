@@ -171,8 +171,7 @@ mod tests {
             }],
             fee,
         };
-        tx.inputs[0].unlocking_data =
-            crate::crypto::authorize_input(&tx, 0, sk, params).unwrap();
+        tx.inputs[0].unlocking_data = crate::crypto::authorize_input(&tx, 0, sk, params).unwrap();
         tx
     }
 

@@ -107,8 +107,14 @@ mod tests {
     fn derivation_is_deterministic_and_indexed() {
         let wallet = Wallet::from_seed([7u8; 32]);
         let same = Wallet::from_seed([7u8; 32]);
-        assert_eq!(wallet.derive_key(0).public_key(), same.derive_key(0).public_key());
-        assert_ne!(wallet.derive_key(0).public_key(), wallet.derive_key(1).public_key());
+        assert_eq!(
+            wallet.derive_key(0).public_key(),
+            same.derive_key(0).public_key()
+        );
+        assert_ne!(
+            wallet.derive_key(0).public_key(),
+            wallet.derive_key(1).public_key()
+        );
         assert_ne!(
             wallet.derive_key(0).public_key(),
             Wallet::from_seed([8u8; 32]).derive_key(0).public_key()

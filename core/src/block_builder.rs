@@ -35,7 +35,9 @@ impl BlockTemplate {
             sum.checked_add(tx.fee).ok_or(ProtocolError::LengthOverflow)
         })?;
         let subsidy = crate::reward::block_subsidy(self.height.0, reward_config);
-        let payout = subsidy.checked_add(fees).ok_or(ProtocolError::LengthOverflow)?;
+        let payout = subsidy
+            .checked_add(fees)
+            .ok_or(ProtocolError::LengthOverflow)?;
         let coinbase = Transaction {
             version: 1,
             inputs: Vec::new(),
@@ -95,7 +97,9 @@ pub fn build_block_from_mempool(
     let max_txs = params.max_txs_per_block.saturating_sub(1);
     let mut transactions = Vec::new();
     for tx in mempool.candidates(max_txs) {
-        let encoded = tx.encode_to_vec().map_err(|_| ProtocolError::UnexpectedEof)?;
+        let encoded = tx
+            .encode_to_vec()
+            .map_err(|_| ProtocolError::UnexpectedEof)?;
         if used.saturating_add(encoded.len()) > params.max_block_bytes {
             continue;
         }

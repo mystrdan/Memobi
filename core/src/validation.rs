@@ -75,11 +75,15 @@ fn validate_coinbase(
     for tx in rest {
         crate::utxo::validate_transaction(tx, &staged, block.header.height.0, params)
             .map_err(|_| BlockValidationError::InvalidCoinbase)?;
-        fees = fees.checked_add(tx.fee).ok_or(BlockValidationError::RewardOverflow)?;
+        fees = fees
+            .checked_add(tx.fee)
+            .ok_or(BlockValidationError::RewardOverflow)?;
         for input in &tx.inputs {
             staged.remove(&input.previous_output);
         }
-        let txid = tx.txid().map_err(|_| BlockValidationError::RewardOverflow)?;
+        let txid = tx
+            .txid()
+            .map_err(|_| BlockValidationError::RewardOverflow)?;
         for (index, output) in tx.outputs.iter().enumerate() {
             let index = u32::try_from(index).map_err(|_| BlockValidationError::RewardOverflow)?;
             staged.insert(
@@ -101,9 +105,12 @@ fn validate_coinbase(
             halving_interval: params.halving_interval,
         },
     );
-    let allowed = subsidy.checked_add(fees).ok_or(BlockValidationError::RewardOverflow)?;
+    let allowed = subsidy
+        .checked_add(fees)
+        .ok_or(BlockValidationError::RewardOverflow)?;
     let coinbase_value = first.outputs.iter().try_fold(0u64, |sum, output| {
-        sum.checked_add(output.value).ok_or(BlockValidationError::RewardOverflow)
+        sum.checked_add(output.value)
+            .ok_or(BlockValidationError::RewardOverflow)
     })?;
     if coinbase_value > allowed {
         return Err(BlockValidationError::ExcessiveReward);
@@ -193,7 +200,9 @@ pub fn validate_block_header_with_params(
             for input in &tx.inputs {
                 staged.remove(&input.previous_output);
             }
-            let txid = tx.txid().map_err(|_| BlockValidationError::RewardOverflow)?;
+            let txid = tx
+                .txid()
+                .map_err(|_| BlockValidationError::RewardOverflow)?;
             for (index, output) in tx.outputs.iter().enumerate() {
                 let index =
                     u32::try_from(index).map_err(|_| BlockValidationError::RewardOverflow)?;

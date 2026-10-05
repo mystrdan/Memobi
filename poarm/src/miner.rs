@@ -22,7 +22,11 @@ pub fn search_candidate_c(
     start_nonce: u64,
     max_attempts: u64,
 ) -> Option<MiningResult> {
-    if config.memory_kib == 0 || config.memory_kib > 1_048_576 || config.rounds == 0 || config.rounds > 64 {
+    if config.memory_kib == 0
+        || config.memory_kib > 1_048_576
+        || config.rounds == 0
+        || config.rounds > 64
+    {
         return None;
     }
     for offset in 0..max_attempts {
@@ -52,7 +56,11 @@ pub fn verify_candidate_c(
     nonce: u64,
     proof: &[u8; 32],
 ) -> bool {
-    if config.memory_kib == 0 || config.memory_kib > 1_048_576 || config.rounds == 0 || config.rounds > 64 {
+    if config.memory_kib == 0
+        || config.memory_kib > 1_048_576
+        || config.rounds == 0
+        || config.rounds > 64
+    {
         return false;
     }
     let expected = work_candidate_c(seed, nonce, epoch, config);
@@ -108,10 +116,19 @@ mod tests {
         // Wrong proof bytes rejected.
         let mut bad = found.proof;
         bad[0] ^= 0xff;
-        assert!(!verify_candidate_c(b"memobi", 0, config, u64::MAX, found.nonce, &bad));
+        assert!(!verify_candidate_c(
+            b"memobi",
+            0,
+            config,
+            u64::MAX,
+            found.nonce,
+            &bad
+        ));
         // Above-target rejected (target 0 unless proof is zero).
-        assert!(!verify_candidate_c(b"memobi", 0, config, 0, found.nonce, &found.proof)
-            || found.proof[..8] == [0u8; 8]);
+        assert!(
+            !verify_candidate_c(b"memobi", 0, config, 0, found.nonce, &found.proof)
+                || found.proof[..8] == [0u8; 8]
+        );
     }
 
     #[test]

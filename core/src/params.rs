@@ -128,9 +128,18 @@ mod tests {
     use super::*;
     #[test]
     fn devnet_and_testnet_ids_differ() {
-        assert_ne!(ConsensusParams::devnet().chain_id, ConsensusParams::testnet().chain_id);
-        assert_ne!(ConsensusParams::devnet().network_id, ConsensusParams::testnet().network_id);
-        assert_ne!(ConsensusParams::devnet().address_hrp, ConsensusParams::testnet().address_hrp);
+        assert_ne!(
+            ConsensusParams::devnet().chain_id,
+            ConsensusParams::testnet().chain_id
+        );
+        assert_ne!(
+            ConsensusParams::devnet().network_id,
+            ConsensusParams::testnet().network_id
+        );
+        assert_ne!(
+            ConsensusParams::devnet().address_hrp,
+            ConsensusParams::testnet().address_hrp
+        );
     }
     #[test]
     fn money_bounds_are_sane() {

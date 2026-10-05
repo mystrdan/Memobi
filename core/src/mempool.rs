@@ -79,7 +79,10 @@ impl Mempool {
             return Err(MempoolError::TxTooLarge);
         }
         if tx.fee < min_fee {
-            return Err(MempoolError::FeeTooLow { fee: tx.fee, min_fee });
+            return Err(MempoolError::FeeTooLow {
+                fee: tx.fee,
+                min_fee,
+            });
         }
         crate::utxo::validate_transaction(&tx, utxos, tip_height + 1, params)
             .map_err(MempoolError::Consensus)?;
@@ -117,7 +120,12 @@ impl Mempool {
         self.total_bytes += bytes.len();
         self.entries.insert(
             txid,
-            Entry { tx, bytes: bytes.len(), added_at: now_secs, fee: 0 },
+            Entry {
+                tx,
+                bytes: bytes.len(),
+                added_at: now_secs,
+                fee: 0,
+            },
         );
         if let Some(e) = self.entries.get_mut(&txid) {
             e.fee = e.tx.fee;
@@ -182,12 +190,7 @@ mod tests {
         (utxos, sk, op)
     }
 
-    fn spend(
-        op: OutPoint,
-        value: u64,
-        sk: &SecretKey,
-        params: &ConsensusParams,
-    ) -> Transaction {
+    fn spend(op: OutPoint, value: u64, sk: &SecretKey, params: &ConsensusParams) -> Transaction {
         let mut tx = Transaction {
             version: params.tx_version,
             inputs: vec![crate::TxInput {

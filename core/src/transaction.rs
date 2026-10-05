@@ -221,7 +221,10 @@ mod tests {
         let mut enc = Transaction {
             version: 1,
             inputs: vec![],
-            outputs: vec![TxOutput { value: 1, spending_condition: vec![0u8; 32] }],
+            outputs: vec![TxOutput {
+                value: 1,
+                spending_condition: vec![0u8; 32],
+            }],
             fee: 0,
         }
         .encode_to_vec()
