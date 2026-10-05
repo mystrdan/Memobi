@@ -57,3 +57,10 @@ The Rust core independently computes and verifies these.
 ## Centralization rule
 
 A hosted service may improve discovery or user experience, but Memobi ownership and consensus must remain functional without a mandatory centralized backend.
+### Persistence boundary
+
+The current persistence layer keeps canonical block headers in an append-only, checksummed store. ChainState::apply_validated_block_with_store() stages consensus state first and only commits the in-memory state after the durable header append succeeds. Full block/UTXO persistence remains a separate step.
+
+### Peer boundary
+
+p2p::PeerSession now owns the protocol handshake/liveness phase independently of transport. It tracks version establishment, remote height, and Ping/Pong handling; socket transport and peer selection remain outside the core protocol state machine.
