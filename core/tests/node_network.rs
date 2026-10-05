@@ -8,22 +8,27 @@ fn two_nodes_converge_on_real_blocks() {
     let produced = produce(DevnetProducerConfig { blocks: 4, ..Default::default() }).unwrap();
     let mut source = Node::new(params.clone());
     let mut target = Node::new(params.clone());
+    let genesis = memobi_core::genesis::devnet_genesis();
+    source.apply_received_block(genesis.clone(), Hash32::ZERO, genesis.header.timestamp, None).unwrap();
+    for entry in &produced.blocks {
+        source.apply_received_block(entry.block.clone(), entry.proof, entry.block.header.timestamp, None).unwrap();
+    }
     let source_version = source.start_peer();
     target.receive_peer_message(source_version, 0, None).unwrap();
     let target_version = target.start_peer();
     source.receive_peer_message(target_version, 0, None).unwrap();
-    assert_eq!(target.peer.remote_height, Some(0));
-    let source_height = produced.chain.height.unwrap();
-    target.observe_peer_height(source_height);
-    let genesis = memobi_core::genesis::devnet_genesis();
-    let mut envelopes = vec![Message::encode_block(&genesis, Hash32::ZERO).unwrap()];
-    envelopes.extend(produced.blocks.iter().map(|b| Message::encode_block(&b.block, b.proof).unwrap()));
+    assert_eq!(target.peer.remote_height, Some(4));
+    let envelopes = {
+        let mut v = vec![Message::encode_block(&genesis, Hash32::ZERO).unwrap()];
+        v.extend(produced.blocks.iter().map(|b| Message::encode_block(&b.block, b.proof).unwrap()));
+        v
+    };
     for envelope in envelopes {
         let (block, _) = Message::decode_block(&envelope, &params).unwrap();
         target.receive_peer_message(Message::Blocks { blocks: vec![envelope] }, block.header.timestamp, None).unwrap();
     }
     assert_eq!(target.chain.height, Some(4));
-    assert_eq!(target.chain.tip, source.chain.tip.or_else(|| produced.chain.tip));
+    assert_eq!(target.chain.tip, source.chain.tip);
     assert_eq!(target.chain.utxos, produced.chain.utxos);
     assert_eq!(target.sync.progress.state, SyncState::Synced);
 }
