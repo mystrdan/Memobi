@@ -154,14 +154,7 @@ pub fn build_block_from_mempool(
         poarm_version: params.poarm_version,
         poarm_nonce: 0,
     }
-    .build_mining_block(
-        transactions,
-        payout_condition,
-        crate::reward::RewardConfig {
-            initial_reward: params.initial_reward,
-            halving_interval: params.halving_interval,
-        },
-    )
+    .build_mining_block_with_params(transactions, payout_condition, params)
 }
 
 #[cfg(test)]
