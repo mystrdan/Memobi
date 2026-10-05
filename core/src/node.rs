@@ -7,8 +7,8 @@
 use crate::{
     chain::{Block, ChainError, ChainState},
     hash::Hash32,
-    params::ConsensusParams,
     p2p::{Message, PeerSession},
+    params::ConsensusParams,
     storage::HeaderStore,
     sync::{SyncLimits, SyncPlanner, SyncRequest},
 };
@@ -60,7 +60,10 @@ impl Node {
         store: Option<&mut HeaderStore>,
     ) -> Result<Option<Message>, NodeError> {
         match message {
-            Message::Version { .. } | Message::Verack | Message::Ping { .. } | Message::Pong { .. } => {
+            Message::Version { .. }
+            | Message::Verack
+            | Message::Ping { .. }
+            | Message::Pong { .. } => {
                 let reply = self.peer.receive(message)?;
                 if let Some(height) = self.peer.remote_height {
                     self.sync.progress.update_best_height(height);
@@ -77,7 +80,9 @@ impl Node {
                 }
                 Ok(None)
             }
-            _ => Err(NodeError::Protocol(crate::ProtocolError::InvalidMessageType)),
+            _ => Err(NodeError::Protocol(
+                crate::ProtocolError::InvalidMessageType,
+            )),
         }
     }
 
@@ -90,27 +95,24 @@ impl Node {
     ) -> Result<Hash32, NodeError> {
         let parent_timestamp = self.chain.headers.last().map(|h| h.timestamp);
         let id = if let Some(store) = store {
-            self.chain
-                .apply_validated_block_with_store(
-                    &block,
-                    proof,
-                    &self.params,
-                    now_secs,
-                    parent_timestamp,
-                    store,
-                )?
+            self.chain.apply_validated_block_with_store(
+                &block,
+                proof,
+                &self.params,
+                now_secs,
+                parent_timestamp,
+                store,
+            )?
         } else {
-            self.chain
-                .apply_validated_block_with_params_and_context(
-                    &block,
-                    proof,
-                    &self.params,
-                    now_secs,
-                    parent_timestamp,
-                )?
+            self.chain.apply_validated_block_with_params_and_context(
+                &block,
+                proof,
+                &self.params,
+                now_secs,
+                parent_timestamp,
+            )?
         };
-        self.sync
-            .blocks_applied(block.header.height.0);
+        self.sync.blocks_applied(block.header.height.0);
         Ok(id)
     }
 
@@ -165,15 +167,19 @@ mod tests {
             },
             0,
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         let genesis = crate::genesis::devnet_genesis();
         let envelope = Message::encode_block(&genesis, Hash32::ZERO).unwrap();
         node.receive_peer_message(
-            Message::Blocks { blocks: vec![envelope] },
+            Message::Blocks {
+                blocks: vec![envelope],
+            },
             genesis.header.timestamp,
             None,
-        ).unwrap();
+        )
+        .unwrap();
 
         assert_eq!(node.chain.height, Some(0));
         assert_eq!(node.chain.tip, Some(genesis.header.block_id().unwrap()));
