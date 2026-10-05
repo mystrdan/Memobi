@@ -14,7 +14,6 @@ use crate::{
 };
 
 #[derive(Debug)]
-#[derive(Debug)]
 pub enum NodeError {
     Protocol(crate::ProtocolError),
     Chain(ChainError),
