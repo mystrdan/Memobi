@@ -13,6 +13,7 @@ pub mod difficulty;
 pub mod genesis;
 pub mod hash;
 pub mod mempool;
+pub mod node;
 pub mod p2p;
 pub mod params;
 pub mod pow;
