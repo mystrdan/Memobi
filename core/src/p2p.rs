@@ -196,7 +196,6 @@ impl Message {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PeerPhase {
     Disconnected,
@@ -213,7 +212,11 @@ pub struct PeerSession {
 
 impl Default for PeerSession {
     fn default() -> Self {
-        Self { phase: PeerPhase::Disconnected, remote_nonce: None, remote_height: None }
+        Self {
+            phase: PeerPhase::Disconnected,
+            remote_nonce: None,
+            remote_height: None,
+        }
     }
 }
 
@@ -229,7 +232,11 @@ impl PeerSession {
 
     pub fn receive(&mut self, message: Message) -> Result<Option<Message>, ProtocolError> {
         match message {
-            Message::Version { protocol_version, node_nonce, height } => {
+            Message::Version {
+                protocol_version,
+                node_nonce,
+                height,
+            } => {
                 if protocol_version != 1 || self.remote_nonce == Some(node_nonce) {
                     return Err(ProtocolError::UnsupportedVersion);
                 }
@@ -263,17 +270,22 @@ mod tests {
         let reply = a.receive(Message::Verack).unwrap();
         assert_eq!(reply, None);
         assert_eq!(a.phase, PeerPhase::Established);
-        assert_eq!(a.receive(Message::Ping { nonce: 55 }).unwrap(), Some(Message::Pong { nonce: 55 }));
+        assert_eq!(
+            a.receive(Message::Ping { nonce: 55 }).unwrap(),
+            Some(Message::Pong { nonce: 55 })
+        );
     }
 
     #[test]
     fn peer_session_records_remote_version_height() {
         let mut peer = PeerSession::default();
-        let reply = peer.receive(Message::Version {
-            protocol_version: 1,
-            node_nonce: 42,
-            height: 123,
-        }).unwrap();
+        let reply = peer
+            .receive(Message::Version {
+                protocol_version: 1,
+                node_nonce: 42,
+                height: 123,
+            })
+            .unwrap();
         assert_eq!(reply, Some(Message::Verack));
         assert_eq!(peer.phase, PeerPhase::Established);
         assert_eq!(peer.remote_nonce, Some(42));
