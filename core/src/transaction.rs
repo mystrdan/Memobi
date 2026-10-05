@@ -224,6 +224,44 @@ mod tests {
     }
 
     #[test]
+    fn coinbase_marker_commits_height_and_changes_txid() {
+        let a = Transaction {
+            version: 1,
+            inputs: vec![Transaction::coinbase_marker(1)],
+            outputs: vec![TxOutput {
+                value: 50,
+                spending_condition: vec![1u8; 32],
+            }],
+            fee: 0,
+        };
+        let b = Transaction {
+            version: 1,
+            inputs: vec![Transaction::coinbase_marker(2)],
+            outputs: a.outputs.clone(),
+            fee: 0,
+        };
+        assert!(a.is_coinbase());
+        assert_eq!(a.coinbase_height(), Some(1));
+        assert_eq!(b.coinbase_height(), Some(2));
+        assert_ne!(a.txid().unwrap(), b.txid().unwrap());
+    }
+
+    #[test]
+    fn arbitrary_zero_input_transaction_is_not_coinbase() {
+        let tx = Transaction {
+            version: 1,
+            inputs: Vec::new(),
+            outputs: vec![TxOutput {
+                value: 0,
+                spending_condition: vec![0u8; 32],
+            }],
+            fee: 0,
+        };
+        assert!(!tx.is_coinbase());
+        assert_eq!(tx.coinbase_height(), None);
+    }
+
+    #[test]
     fn oversized_counts_and_versions_are_rejected() {
         use crate::params::ConsensusParams;
         let params = ConsensusParams::devnet();
