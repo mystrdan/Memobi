@@ -108,10 +108,10 @@ impl BlockStore {
         Ok(self.file.metadata()?.len())
     }
 
-    pub(crate) fn rollback_to(&mut self, len: u64) -> Result<(), StorageError> {
+    pub(crate) fn rollback_to(&mut self, len: u64, count: u64) -> Result<(), StorageError> {
         self.file.set_len(len)?;
         self.file.sync_data()?;
-        self.count = self.count.saturating_sub(1);
+        self.count = count;
         Ok(())
     }
 
