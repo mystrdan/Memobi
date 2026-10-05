@@ -128,8 +128,10 @@ impl ChainState {
             }
 
             if tx_index == 0 && height != 0 {
-                // Coinbase position enforced by validation layer; here we just
-                // skip consensus spend checks for it.
+                // Coinbase position and marker semantics are enforced by the
+                // validation layer; skip ordinary spend checks here.
+            } else if tx_index == 0 && height == 0 {
+                // Genesis is a special zero-input identity transaction.
             } else if !tx.is_coinbase() {
                 validate_transaction(tx, &staged_utxos, height, params)
                     .map_err(ChainError::InvalidTransaction)?;
