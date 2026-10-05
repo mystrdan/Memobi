@@ -253,7 +253,6 @@ pub fn validate_block_header_with_params(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{BlockHeight, Transaction, TxOutput};
     fn block() -> Block {
         crate::genesis::devnet_genesis()
     }
