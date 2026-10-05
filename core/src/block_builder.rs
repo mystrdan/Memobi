@@ -31,6 +31,47 @@ impl BlockTemplate {
         payout_condition: Vec<u8>,
         reward_config: crate::reward::RewardConfig,
     ) -> Result<Block, ProtocolError> {
+        self.build_mining_block_with_tx_version(
+            transactions,
+            payout_condition,
+            reward_config,
+            self.version,
+        )
+    }
+
+    /// Consensus-parameterized mining construction.
+    ///
+    /// Production callers should use this entry point so the transaction
+    /// version comes from the same parameter set as validation.
+    pub fn build_mining_block_with_params(
+        self,
+        transactions: Vec<Transaction>,
+        payout_condition: Vec<u8>,
+        params: &crate::params::ConsensusParams,
+    ) -> Result<Block, ProtocolError> {
+        if self.version != params.block_version
+            || self.poarm_version != params.poarm_version
+        {
+            return Err(ProtocolError::InvalidMessage);
+        }
+        self.build_mining_block_with_tx_version(
+            transactions,
+            payout_condition,
+            crate::reward::RewardConfig {
+                initial_reward: params.initial_reward,
+                halving_interval: params.halving_interval,
+            },
+            params.tx_version,
+        )
+    }
+
+    fn build_mining_block_with_tx_version(
+        self,
+        transactions: Vec<Transaction>,
+        payout_condition: Vec<u8>,
+        reward_config: crate::reward::RewardConfig,
+        tx_version: u32,
+    ) -> Result<Block, ProtocolError> {
         let fees = transactions.iter().try_fold(0u64, |sum, tx| {
             sum.checked_add(tx.fee).ok_or(ProtocolError::LengthOverflow)
         })?;
@@ -39,7 +80,7 @@ impl BlockTemplate {
             .checked_add(fees)
             .ok_or(ProtocolError::LengthOverflow)?;
         let coinbase = Transaction {
-            version: 1,
+            version: tx_version,
             inputs: vec![Transaction::coinbase_marker(self.height.0)],
             outputs: vec![crate::TxOutput {
                 value: payout,
