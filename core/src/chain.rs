@@ -61,12 +61,33 @@ impl ChainState {
         parent_timestamp: Option<u64>,
     ) -> Result<Hash32, ChainError> {
         let params = crate::params::ConsensusParams::devnet();
+        self.apply_validated_block_with_params_and_context(
+            block,
+            proof,
+            &params,
+            now_secs,
+            parent_timestamp,
+        )
+    }
+
+    /// Validate and apply a block using an explicit network parameter set.
+    ///
+    /// This is the parameterized consensus entry point. The convenience
+    /// methods above remain devnet defaults for existing callers.
+    pub fn apply_validated_block_with_params_and_context(
+        &mut self,
+        block: &Block,
+        proof: Hash32,
+        params: &crate::params::ConsensusParams,
+        now_secs: u64,
+        parent_timestamp: Option<u64>,
+    ) -> Result<Hash32, ChainError> {
         let parent = parent_timestamp.or_else(|| self.headers.last().map(|h| h.timestamp));
         crate::validation::validate_block_header_with_params(
-            self, block, proof, &params, now_secs, parent,
+            self, block, proof, params, now_secs, parent,
         )
         .map_err(ChainError::InvalidHeader)?;
-        self.apply_block(block)
+        self.apply_block_with_params(block, params)
     }
 
     pub fn apply_block(&mut self, block: &Block) -> Result<Hash32, ChainError> {
