@@ -248,25 +248,6 @@ impl ChainState {
         Ok(wins)
     }
 
-    /// Roll back to `height` (exclusive truncation handled by caller replay).
-    /// Minimal helper for devnet reorg tests: truncates headers/height/tip.
-    /// UTXO replay must be done by the caller via full fork replay.
-    pub fn truncate_for_reorg(&mut self, keep_height: Option<u64>) {
-        match keep_height {
-            None => {
-                self.tip = None;
-                self.height = None;
-                self.headers.clear();
-                self.utxos.clear();
-                self.work = crate::chainwork::WorkScore(0);
-            }
-            Some(h) => {
-                self.headers.truncate((h + 1) as usize);
-                self.height = Some(h);
-                // Tip recomputation requires block ids; caller sets after replay.
-            }
-        }
-    }
 }
 
 #[cfg(test)]
