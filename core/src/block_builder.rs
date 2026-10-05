@@ -171,6 +171,26 @@ mod tests {
     use super::*;
 
     #[test]
+    fn parameterized_builder_uses_consensus_transaction_version() {
+        let mut params = crate::params::ConsensusParams::devnet();
+        params.tx_version = 7;
+        let template = BlockTemplate {
+            version: params.block_version,
+            previous_block: Hash32::ZERO,
+            height: BlockHeight(1),
+            timestamp: 10,
+            target: params.max_target,
+            poarm_version: params.poarm_version,
+            poarm_nonce: 0,
+        };
+        let block = template
+            .build_mining_block_with_params(Vec::new(), vec![0u8; 32], &params)
+            .unwrap();
+        assert_eq!(block.transactions[0].version, 7);
+        assert_eq!(block.header.version, params.block_version);
+    }
+
+    #[test]
     fn template_builds_deterministic_header_root() {
         let tx = Transaction {
             version: 1,
