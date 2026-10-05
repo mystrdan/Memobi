@@ -11,7 +11,6 @@ use memobi_core::{
     crypto::SecretKey,
     genesis::devnet_genesis,
     params::ConsensusParams,
-    reward::RewardConfig,
 };
 
 use crate::{
@@ -128,13 +127,10 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
             poarm_nonce: 0,
         };
 
-        let mut block = template.build_mining_block(
+        let mut block = template.build_mining_block_with_params(
             Vec::new(),
             payout.clone(),
-            RewardConfig {
-                initial_reward: params.initial_reward,
-                halving_interval: params.halving_interval,
-            },
+            &params,
         )?;
 
         let seed = block
