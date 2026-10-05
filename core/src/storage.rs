@@ -104,7 +104,11 @@ impl BlockStore {
         self.count
     }
 
-    pub fn append(&mut self, block: &crate::chain::Block, proof: Hash32) -> Result<(), StorageError> {
+    pub fn append(
+        &mut self,
+        block: &crate::chain::Block,
+        proof: Hash32,
+    ) -> Result<(), StorageError> {
         let bytes = block.encode_to_vec()?;
         let record_len = BLOCK_RECORD_PROOF_BYTES
             .checked_add(bytes.len())
@@ -139,8 +143,8 @@ impl BlockStore {
             }
             let proof = Hash32(reader.read_array()?);
             let raw = reader.read_bytes(len - BLOCK_RECORD_PROOF_BYTES)?;
-            let block = crate::chain::Block::decode_bounded(raw, params)
-                .map_err(StorageError::Protocol)?;
+            let block =
+                crate::chain::Block::decode_bounded(raw, params).map_err(StorageError::Protocol)?;
             blocks.push((block, proof));
         }
         Ok(blocks)

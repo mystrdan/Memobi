@@ -158,7 +158,9 @@ impl ChainState {
             now_secs,
             parent_timestamp,
         )?;
-        block_store.append(block, proof).map_err(ChainError::Storage)?;
+        block_store
+            .append(block, proof)
+            .map_err(ChainError::Storage)?;
         header_store
             .append(&block.header)
             .map_err(ChainError::Storage)?;
