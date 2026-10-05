@@ -41,7 +41,8 @@ impl From<ProtocolError> for StorageError {
 }
 
 const BLOCK_MAGIC: &[u8; 8] = b"MEMOBLK\0";
-const BLOCK_VERSION: u32 = 1;
+const BLOCK_VERSION: u32 = 2;
+const BLOCK_RECORD_PROOF_BYTES: usize = 32;
 
 pub struct BlockStore {
     path: PathBuf,
@@ -103,11 +104,15 @@ impl BlockStore {
         self.count
     }
 
-    pub fn append(&mut self, block: &crate::chain::Block) -> Result<(), StorageError> {
+    pub fn append(&mut self, block: &crate::chain::Block, proof: Hash32) -> Result<(), StorageError> {
         let bytes = block.encode_to_vec()?;
+        let record_len = BLOCK_RECORD_PROOF_BYTES
+            .checked_add(bytes.len())
+            .ok_or(StorageError::Corrupt("block record length overflow"))?;
         let mut prefix = Vec::with_capacity(4);
-        put_u32_le(&mut prefix, bytes.len() as u32);
+        put_u32_le(&mut prefix, record_len as u32);
         self.file.write_all(&prefix)?;
+        self.file.write_all(proof.as_bytes())?;
         self.file.write_all(&bytes)?;
         self.file.flush()?;
         self.file.sync_data()?;
@@ -118,7 +123,7 @@ impl BlockStore {
     pub fn read_all(
         &mut self,
         params: &crate::params::ConsensusParams,
-    ) -> Result<Vec<crate::chain::Block>, StorageError> {
+    ) -> Result<Vec<(crate::chain::Block, Hash32)>, StorageError> {
         let mut file = File::open(&self.path)?;
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)?;
@@ -129,10 +134,14 @@ impl BlockStore {
         let mut blocks = Vec::with_capacity(self.count as usize);
         while reader.remaining() > 0 {
             let len = reader.read_u32_le()? as usize;
-            let raw = reader.read_bytes(len)?;
-            blocks.push(
-                crate::chain::Block::decode_bounded(raw, params).map_err(StorageError::Protocol)?,
-            );
+            if len < BLOCK_RECORD_PROOF_BYTES {
+                return Err(StorageError::Corrupt("block record missing proof"));
+            }
+            let proof = Hash32(reader.read_array()?);
+            let raw = reader.read_bytes(len - BLOCK_RECORD_PROOF_BYTES)?;
+            let block = crate::chain::Block::decode_bounded(raw, params)
+                .map_err(StorageError::Protocol)?;
+            blocks.push((block, proof));
         }
         Ok(blocks)
     }
@@ -263,7 +272,7 @@ mod block_store_tests {
         let block = crate::genesis::devnet_genesis();
         {
             let mut store = BlockStore::open(&path).unwrap();
-            store.append(&block).unwrap();
+            store.append(&block, Hash32::ZERO).unwrap();
             assert_eq!(store.len(), 1);
         }
         {
@@ -272,7 +281,7 @@ mod block_store_tests {
                 store
                     .read_all(&crate::params::ConsensusParams::devnet())
                     .unwrap(),
-                vec![block]
+                vec![(block, Hash32::ZERO)]
             );
         }
         let _ = std::fs::remove_file(path);
