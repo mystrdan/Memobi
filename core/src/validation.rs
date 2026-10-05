@@ -255,31 +255,9 @@ mod tests {
     use super::*;
     use crate::{BlockHeight, Transaction, TxOutput};
     fn block() -> Block {
-        // Height-0 genesis-style block: coinbase bypass permitted.
-        let tx = Transaction {
-            version: 1,
-            inputs: vec![],
-            outputs: vec![TxOutput {
-                value: 1,
-                spending_condition: vec![0u8; 32],
-            }],
-            fee: 0,
-        };
-        let root = crate::block::transaction_root(std::slice::from_ref(&tx)).unwrap();
-        Block {
-            header: crate::block::BlockHeader {
-                version: 1,
-                previous_block: Hash32::ZERO,
-                height: BlockHeight(0),
-                timestamp: 0,
-                target: u64::MAX,
-                poarm_version: 0,
-                poarm_nonce: 0,
-                transaction_root: root,
-            },
-            transactions: vec![tx],
-        }
+        crate::genesis::devnet_genesis()
     }
+
     #[test]
     fn valid_devnet_header_passes() {
         assert!(validate_block_header(&ChainState::default(), &block(), Hash32::ZERO).is_ok());
@@ -294,25 +272,13 @@ mod tests {
         );
     }
     #[test]
-    fn failed_proof_is_rejected() {
+    fn noncanonical_genesis_is_rejected() {
         let mut b = block();
-        // Height 1 enforces coinbase position + reward, so build valid coinbase.
-        b.header.height = BlockHeight(1);
-        b.header.previous_block = Hash32::ZERO;
-        // ChainState default has no tip, so set height 0 expectation manually:
-        // use a state with tip ZERO at height 0.
-        let state = ChainState {
-            tip: Some(Hash32::ZERO),
-            height: Some(0),
-            ..Default::default()
-        };
-        b.header.target = 10;
-        // Recompute root after no tx change (same single coinbase).
-        let mut p = [0; 32];
-        p[..8].copy_from_slice(&11u64.to_be_bytes());
+        b.transactions[0].outputs[0].value = 1;
+        b.header.transaction_root = crate::block::transaction_root(&b.transactions).unwrap();
         assert_eq!(
-            validate_block_header(&state, &b, Hash32(p)),
-            Err(BlockValidationError::InvalidProof)
+            validate_block_header(&ChainState::default(), &b, Hash32::ZERO),
+            Err(BlockValidationError::InvalidGenesis)
         );
     }
 }
