@@ -5,7 +5,7 @@
 
 use crate::{
     BlockHeight, ProtocolError,
-    codec::{Encode, put_u32_le, put_u64_le},
+    codec::{Encode, Reader, put_u32_le, put_u64_le},
     hash::{Hash32, sha256},
     transaction::Transaction,
 };
@@ -33,6 +33,45 @@ impl Encode for BlockHeader {
         put_u64_le(out, self.poarm_nonce);
         out.extend_from_slice(self.transaction_root.as_bytes());
         Ok(())
+    }
+}
+
+impl crate::chain::Block {
+    pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
+        let mut out = self.header.encode_to_vec()?;
+        put_u32_le(&mut out, u32::try_from(self.transactions.len()).map_err(|_| ProtocolError::LengthOverflow)?);
+        for tx in &self.transactions {
+            let encoded = tx.encode_to_vec()?;
+            crate::codec::put_bytes(&mut out, &encoded)?;
+        }
+        Ok(out)
+    }
+
+    pub fn decode_bounded(
+        bytes: &[u8],
+        params: &crate::params::ConsensusParams,
+    ) -> Result<Self, ProtocolError> {
+        if bytes.len() > params.max_block_bytes {
+            return Err(ProtocolError::InvalidMessageSize);
+        }
+        let mut r = Reader::new(bytes);
+        let header_bytes = r.read_bytes(104)?;
+        let header = BlockHeader::decode(header_bytes)?;
+        let count = r.read_u32_le()? as usize;
+        if count == 0 || count > params.max_txs_per_block {
+            return Err(ProtocolError::LimitExceeded);
+        }
+        let mut transactions = Vec::with_capacity(count);
+        for _ in 0..count {
+            let raw = crate::codec::read_bytes_u32(&mut r)?;
+            transactions.push(crate::Transaction::decode_bounded(raw, params)?);
+        }
+        r.finish()?;
+        let expected = transaction_root(&transactions)?;
+        if expected != header.transaction_root {
+            return Err(ProtocolError::InvalidTransactionRoot);
+        }
+        Ok(Self { header, transactions })
     }
 }
 
@@ -66,6 +105,26 @@ pub fn transaction_root(transactions: &[Transaction]) -> Result<Hash32, Protocol
 }
 
 impl BlockHeader {
+    pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        if bytes.len() != 104 {
+            return Err(ProtocolError::InvalidMessageSize);
+        }
+        let mut r = Reader::new(bytes);
+        let header = Self {
+            version: r.read_u32_le()?,
+            previous_block: Hash32(r.read_array()?),
+            height: BlockHeight(r.read_u64_le()?),
+            timestamp: r.read_u64_le()?,
+            target: r.read_u64_le()?,
+            poarm_version: r.read_u32_le()?,
+            poarm_nonce: r.read_u64_le()?,
+            transaction_root: Hash32(r.read_array()?),
+        };
+        r.finish()?;
+        Ok(header)
+    }
+
+
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
         let mut out = Vec::with_capacity(4 + 32 + 8 + 8 + 8 + 4 + 8 + 32);
         self.encode(&mut out)?;
