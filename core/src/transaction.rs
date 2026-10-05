@@ -80,10 +80,40 @@ impl Encode for Transaction {
 }
 
 impl Transaction {
-    /// Coinbase transactions have no inputs and are created by block production.
-    /// This is provisional until a dedicated transaction kind is frozen.
+    /// Reserved outpoint used by a block coinbase input.
+    ///
+    /// The block height is committed in the unlocking data, making otherwise
+    /// identical payouts produce distinct transaction IDs/outpoints.
+    pub const COINBASE_INDEX: u32 = u32::MAX;
+
+    pub fn coinbase_marker(height: u64) -> TxInput {
+        TxInput {
+            previous_output: OutPoint {
+                txid: Hash32::ZERO,
+                index: Self::COINBASE_INDEX,
+            },
+            unlocking_data: height.to_le_bytes().to_vec(),
+        }
+    }
+
+    /// Coinbase transactions contain exactly one reserved marker input.
     pub fn is_coinbase(&self) -> bool {
-        self.inputs.is_empty()
+        if self.inputs.len() != 1 {
+            return false;
+        }
+        let input = &self.inputs[0];
+        input.previous_output.txid == Hash32::ZERO
+            && input.previous_output.index == Self::COINBASE_INDEX
+            && input.unlocking_data.len() == 8
+    }
+
+    pub fn coinbase_height(&self) -> Option<u64> {
+        if !self.is_coinbase() {
+            return None;
+        }
+        let mut bytes = [0u8; 8];
+        bytes.copy_from_slice(&self.inputs[0].unlocking_data);
+        Some(u64::from_le_bytes(bytes))
     }
 
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
