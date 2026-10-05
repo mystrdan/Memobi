@@ -60,12 +60,14 @@
 - [x] P2P message serialization skeleton
 - [x] Add bounded P2P collection/payload decoding
 - [ ] P2P networking
-- [ ] Two-node synchronization integration
-- [ ] Full block/state persistence and restart recovery
+- [x] Two-node synchronization integration
+- [x] Full canonical block persistence and restart replay recovery
 - [x] Add provisional synchronization state and locator
 - [x] Add bounded synchronization request planner
 - [x] Add persistent canonical-header storage foundation
 - [x] Add in-process node engine joining peer, sync, consensus, and header persistence
+- [x] Add canonical block storage with persisted PoARM proofs
+- [x] Add restart recovery by replaying persisted canonical blocks through consensus
 - [x] Wallet key-selection requirements
 - [x] Provisional wallet and key handling\n- [ ] Final wallet/key specification
 - [ ] CLI node and miner
