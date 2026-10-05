@@ -116,6 +116,30 @@ impl ChainState {
         Ok(id)
     }
 
+    /// Rebuild canonical consensus state from the durable block log.
+    ///
+    /// Blocks are replayed oldest-first through the same validation path used
+    /// for network ingestion. This intentionally reconstructs UTXO state from
+    /// canonical blocks instead of trusting a persisted state snapshot.
+    pub fn recover_from_block_store(
+        params: &crate::params::ConsensusParams,
+        store: &mut crate::storage::BlockStore,
+    ) -> Result<Self, ChainError> {
+        let records = store.read_all(params).map_err(ChainError::Storage)?;
+        let mut chain = Self::default();
+        for (block, proof) in records {
+            let parent_timestamp = chain.headers.last().map(|h| h.timestamp);
+            chain.apply_validated_block_with_params_and_context(
+                &block,
+                proof,
+                params,
+                block.header.timestamp,
+                parent_timestamp,
+            )?;
+        }
+        Ok(chain)
+    }
+
     pub fn apply_validated_block_with_stores(
         &mut self,
         block: &Block,
@@ -134,7 +158,7 @@ impl ChainState {
             now_secs,
             parent_timestamp,
         )?;
-        block_store.append(block).map_err(ChainError::Storage)?;
+        block_store.append(block, proof).map_err(ChainError::Storage)?;
         header_store
             .append(&block.header)
             .map_err(ChainError::Storage)?;
