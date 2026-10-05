@@ -6,7 +6,7 @@
 
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Read, Write},
+    io::{self, Read, Seek, SeekFrom, Write},
     path::{Path, PathBuf},
 };
 
@@ -55,7 +55,8 @@ impl HeaderStore {
         } else {
             if len < 12 { return Err(StorageError::Corrupt("truncated store header")); }
             let mut prefix = [0u8; 12];
-            file.read_exact_at(&mut prefix, 0)?;
+            file.seek(SeekFrom::Start(0))?;
+            file.read_exact(&mut prefix)?;
             if &prefix[..8] != MAGIC { return Err(StorageError::Corrupt("invalid store magic")); }
             if u32::from_le_bytes(prefix[8..12].try_into().unwrap()) != VERSION {
                 return Err(StorageError::Corrupt("unsupported store version"));
