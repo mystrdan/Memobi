@@ -73,13 +73,12 @@ impl SyncProgress {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SyncLimits {
-    pub max_header_batch: u64,
     pub max_block_batch: u64,
 }
 
 impl Default for SyncLimits {
     fn default() -> Self {
-        Self { max_header_batch: 2_000, max_block_batch: 256 }
+        Self { max_block_batch: 256 }
     }
 }
 
@@ -142,7 +141,7 @@ mod tests {
 
     #[test]
     fn planner_batches_blocks_and_stops_when_caught_up() {
-        let mut planner = SyncPlanner::new(10, 700, SyncLimits { max_header_batch: 100, max_block_batch: 64 });
+        let mut planner = SyncPlanner::new(10, 700, SyncLimits { max_block_batch: 64 });
         assert!(matches!(planner.next_request(Some(Hash32([7; 32]))), Some(SyncRequest::GetHeaders { .. })));
         planner.headers_received(700);
         assert_eq!(
