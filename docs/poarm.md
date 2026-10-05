@@ -26,6 +26,14 @@ A candidate PoARM design should investigate:
 - practical execution on ARM64 mobile SoCs
 - reasonable execution on desktop and server CPUs without making them the obvious dominant hardware
 
+## Current repository integration
+
+The repository now has an experimental Candidate C mining path wired through the real block-production and validation flow. The deterministic devnet producer builds a block from the current chain tip, derives its PoARM seed from the consensus parameter set, searches for a nonce, independently verifies the proof, and applies the block through the parameterized consensus path.
+
+The PoARM seed domain is supplied by `ConsensusParams::poarm_domain`. A compatibility `poarm_seed()` wrapper remains for provisional callers, while consensus-facing production code uses `poarm_seed_with_params()` so network parameterization cannot silently diverge from the configured domain.
+
+This does **not** freeze PoARM v0. Workload parameters, proof encoding, target interpretation, and production difficulty remain research items until test vectors and cross-platform measurements are complete.
+
 ## Mobile-first benchmark
 
 The first implementation will be a standalone benchmark rather than a blockchain miner.
