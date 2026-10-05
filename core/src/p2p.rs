@@ -247,11 +247,15 @@ impl Default for PeerSession {
 
 impl PeerSession {
     pub fn start(&mut self) -> Message {
+        self.start_with_height(0)
+    }
+
+    pub fn start_with_height(&mut self, height: u64) -> Message {
         self.phase = PeerPhase::VersionSent;
         Message::Version {
             protocol_version: 1,
             node_nonce: 0,
-            height: 0,
+            height,
         }
     }
 
