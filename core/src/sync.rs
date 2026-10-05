@@ -139,6 +139,31 @@ impl SyncPlanner {
 mod tests {
     use super::*;
 
+
+    #[test]
+    fn planner_batches_blocks_and_stops_when_caught_up() {
+        let mut planner = SyncPlanner::new(10, 700, SyncLimits { max_header_batch: 100, max_block_batch: 64 });
+        assert!(matches!(planner.next_request(Some(Hash32([7; 32]))), Some(SyncRequest::GetHeaders { .. })));
+        planner.headers_received(700);
+        assert_eq!(
+            planner.next_request(Some(Hash32([7; 32]))),
+            Some(SyncRequest::GetBlocks { start_height: 11, count: 64 })
+        );
+        planner.blocks_applied(700);
+        assert_eq!(planner.progress.state, SyncState::Synced);
+        assert_eq!(planner.next_request(None), None);
+    }
+
+    #[test]
+    fn planner_never_requests_more_than_remaining_blocks() {
+        let mut planner = SyncPlanner::new(98, 100, SyncLimits::default());
+        planner.headers_received(100);
+        assert_eq!(
+            planner.next_request(None),
+            Some(SyncRequest::GetBlocks { start_height: 99, count: 2 })
+        );
+    }
+
     #[test]
     fn equal_height_is_synced() {
         assert_eq!(SyncProgress::new(10, 10).state, SyncState::Synced);
