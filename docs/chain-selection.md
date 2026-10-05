@@ -22,3 +22,9 @@ This is **not mainnet consensus**. The final rule must freeze:
 - interaction with difficulty adjustment
 
 The implementation is intentionally isolated so those decisions can change without rewriting P2P or wallet code.
+
+## Repository replay path
+
+Fork replay is performed against a scratch `ChainState` and is committed only when the candidate chain wins the current chain-selection rule. The parameterized `replay_fork_with_params()` path uses the supplied `ConsensusParams` for every block, while the shorter `replay_fork()` helper remains a devnet convenience wrapper.
+
+This keeps reorganization validation atomic: an invalid fork cannot partially replace canonical UTXO/header state. The current equal-work-by-length behavior remains explicitly devnet/provisional and is not a mainnet consensus commitment.
