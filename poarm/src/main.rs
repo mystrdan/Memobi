@@ -1,13 +1,6 @@
 use std::time::Instant;
 
-use memobi_core::{
-    BlockHeight, Hash32,
-    block_builder::BlockTemplate,
-    chain::ChainState,
-    genesis::{GenesisConfig, build_genesis},
-    reward::RewardConfig,
-};
-use memobi_poarm::{Config, miner::search_candidate_c, work, work_candidate_b, work_candidate_c};
+use memobi_poarm::{Config, work, work_candidate_b, work_candidate_c};
 
 fn benchmark<F>(name: &str, samples: u64, mut f: F)
 where
