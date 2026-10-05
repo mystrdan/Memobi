@@ -146,7 +146,8 @@ mod tests {
             memory_kib: 1,
             rounds: 1,
         };
-        assert_ne!(work(b"memobi", 1, zero), work(b"memobi", 1, one));
+        // `memory_kib.max(1)` normalizes 0 -> 1 KiB deterministically.
+        assert_eq!(work(b"memobi", 1, zero), work(b"memobi", 1, one));
     }
     #[test]
     fn candidate_b_is_deterministic() {

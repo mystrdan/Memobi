@@ -10,3 +10,11 @@ path = "src/lib.rs"
 
 [dependencies]
 sha2 = "0.10"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize = "1"
+subtle = "2"
+
+[dev-dependencies]
+memobi-poarm = { path = "../poarm" }
+

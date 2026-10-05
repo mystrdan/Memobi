@@ -69,6 +69,58 @@ impl BlockTemplate {
     }
 }
 
+/// Assemble a mining block from mempool candidates for the current tip.
+///
+/// Produces a fully-formed block: correct parent/height, difficulty derived
+/// from chain history (retarget-aware, identical to what validation enforces),
+/// and a coinbase paying subsidy + fees. Transactions come fee-ordered from
+/// the mempool and are filtered so header + txs fit `params.max_block_bytes`.
+pub fn build_block_from_mempool(
+    state: &crate::chain::ChainState,
+    mempool: &crate::mempool::Mempool,
+    params: &crate::params::ConsensusParams,
+    timestamp: u64,
+    payout_condition: Vec<u8>,
+) -> Result<Block, ProtocolError> {
+    let history = state.timestamps();
+    let tip_target = state.headers.last().map(|h| h.target);
+    let target = crate::difficulty::next_block_target(&history, tip_target, timestamp, params)
+        .map_err(|_| ProtocolError::InvalidTarget)?;
+    let (previous_block, height) = match (state.tip, state.height) {
+        (Some(tip), Some(h)) => (tip, h + 1),
+        _ => (Hash32::ZERO, 0),
+    };
+    // Header (104 B) + coinbase headroom reserved from the block budget.
+    let mut used = 104usize.saturating_add(256);
+    let max_txs = params.max_txs_per_block.saturating_sub(1);
+    let mut transactions = Vec::new();
+    for tx in mempool.candidates(max_txs) {
+        let encoded = tx.encode_to_vec().map_err(|_| ProtocolError::UnexpectedEof)?;
+        if used.saturating_add(encoded.len()) > params.max_block_bytes {
+            continue;
+        }
+        used = used.saturating_add(encoded.len());
+        transactions.push(tx);
+    }
+    BlockTemplate {
+        version: params.block_version,
+        previous_block,
+        height: BlockHeight(height),
+        timestamp,
+        target,
+        poarm_version: params.poarm_version,
+        poarm_nonce: 0,
+    }
+    .build_mining_block(
+        transactions,
+        payout_condition,
+        crate::reward::RewardConfig {
+            initial_reward: params.initial_reward,
+            halving_interval: params.halving_interval,
+        },
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -82,11 +134,11 @@ mod tests {
                     txid: Hash32([7; 32]),
                     index: 0,
                 },
-                unlocking_data: b"sig".to_vec(),
+                unlocking_data: vec![0u8; 96],
             }],
             outputs: vec![crate::TxOutput {
                 value: 10,
-                spending_condition: b"condition".to_vec(),
+                spending_condition: vec![0u8; 32],
             }],
             fee: 0,
         };

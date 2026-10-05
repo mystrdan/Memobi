@@ -1,7 +1,8 @@
-//! Experimental PoARM mining loop.
+//! PoARM mining and independent verification (devnet candidate C).
 //!
-//! This is laboratory code. Its target interpretation intentionally mirrors
-//! the temporary core PoW helper and must not be treated as final consensus.
+//! Search and verify share one rule: `work_candidate_c(seed,nonce,epoch)`
+//! recomputed from the header seed, first 8 bytes BE compared to target.
+//! Verification is independent: it needs only header + params, never miner state.
 
 use crate::{Config, work_candidate_c};
 
@@ -12,11 +13,7 @@ pub struct MiningResult {
     pub attempts: u64,
 }
 
-/// Search sequential nonces until Candidate C produces a proof whose first
-/// eight bytes, interpreted as big-endian, are at or below target.
-///
-/// max_attempts bounds the laboratory search so callers can safely use this
-/// helper in benchmarks and tests.
+/// Search sequential nonces until Candidate C meets target.
 pub fn search_candidate_c(
     seed: &[u8],
     epoch: u64,
@@ -25,6 +22,9 @@ pub fn search_candidate_c(
     start_nonce: u64,
     max_attempts: u64,
 ) -> Option<MiningResult> {
+    if config.memory_kib == 0 || config.memory_kib > 1_048_576 || config.rounds == 0 || config.rounds > 64 {
+        return None;
+    }
     for offset in 0..max_attempts {
         let nonce = start_nonce.checked_add(offset)?;
         let proof = work_candidate_c(seed, nonce, epoch, config);
@@ -40,6 +40,26 @@ pub fn search_candidate_c(
     }
 
     None
+}
+
+/// Independently verify a `(seed, nonce, epoch, proof)` tuple.
+/// Recomputes the workload; rejects mismatched proofs and above-target proofs.
+pub fn verify_candidate_c(
+    seed: &[u8],
+    epoch: u64,
+    config: Config,
+    target: u64,
+    nonce: u64,
+    proof: &[u8; 32],
+) -> bool {
+    if config.memory_kib == 0 || config.memory_kib > 1_048_576 || config.rounds == 0 || config.rounds > 64 {
+        return false;
+    }
+    let expected = work_candidate_c(seed, nonce, epoch, config);
+    if &expected != proof {
+        return false;
+    }
+    u64::from_be_bytes(proof[..8].try_into().unwrap()) <= target
 }
 
 #[cfg(test)]
@@ -67,5 +87,41 @@ mod tests {
         };
 
         assert!(search_candidate_c(b"memobi", 0, config, 0, 0, 0).is_none());
+    }
+
+    #[test]
+    fn verify_recomputes_and_checks_target() {
+        use super::verify_candidate_c;
+        let config = Config {
+            memory_kib: 1,
+            rounds: 1,
+        };
+        let found = search_candidate_c(b"memobi", 0, config, u64::MAX, 0, 5).unwrap();
+        assert!(verify_candidate_c(
+            b"memobi",
+            0,
+            config,
+            u64::MAX,
+            found.nonce,
+            &found.proof
+        ));
+        // Wrong proof bytes rejected.
+        let mut bad = found.proof;
+        bad[0] ^= 0xff;
+        assert!(!verify_candidate_c(b"memobi", 0, config, u64::MAX, found.nonce, &bad));
+        // Above-target rejected (target 0 unless proof is zero).
+        assert!(!verify_candidate_c(b"memobi", 0, config, 0, found.nonce, &found.proof)
+            || found.proof[..8] == [0u8; 8]);
+    }
+
+    #[test]
+    fn invalid_config_is_rejected() {
+        use super::verify_candidate_c;
+        let bad = Config {
+            memory_kib: 0,
+            rounds: 1,
+        };
+        assert!(search_candidate_c(b"x", 0, bad, u64::MAX, 0, 10).is_none());
+        assert!(!verify_candidate_c(b"x", 0, bad, u64::MAX, 0, &[0u8; 32]));
     }
 }

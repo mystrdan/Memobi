@@ -9,7 +9,7 @@ use crate::{
     hash::{Hash32, sha256},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct OutPoint {
     pub txid: Hash32,
     pub index: u32,
@@ -98,30 +98,62 @@ impl Transaction {
     }
 
     pub fn decode(bytes: &[u8]) -> Result<Self, ProtocolError> {
+        Self::decode_bounded(bytes, &crate::params::ConsensusParams::devnet())
+    }
+
+    pub fn decode_bounded(
+        bytes: &[u8],
+        params: &crate::params::ConsensusParams,
+    ) -> Result<Self, ProtocolError> {
+        if bytes.len() > params.max_tx_bytes {
+            return Err(ProtocolError::LimitExceeded);
+        }
         let mut reader = Reader::new(bytes);
         let version = reader.read_u32_le()?;
+        if version != params.tx_version {
+            return Err(ProtocolError::UnsupportedVersion);
+        }
         let input_count = reader.read_u32_le()? as usize;
+        if input_count > params.max_inputs_per_tx {
+            return Err(ProtocolError::LimitExceeded);
+        }
+        // Prevent OOM: capacity capped by validated count (<=256).
         let mut inputs = Vec::with_capacity(input_count);
         for _ in 0..input_count {
             let txid = Hash32(reader.read_array()?);
             let index = reader.read_u32_le()?;
-            let unlocking_data = read_bytes_u32(&mut reader)?.to_vec();
+            let raw = read_bytes_u32(&mut reader)?;
+            if raw.len() > params.max_unlocking_bytes {
+                return Err(ProtocolError::LimitExceeded);
+            }
             inputs.push(TxInput {
                 previous_output: OutPoint { txid, index },
-                unlocking_data,
+                unlocking_data: raw.to_vec(),
             });
         }
         let output_count = reader.read_u32_le()? as usize;
+        if output_count > params.max_outputs_per_tx {
+            return Err(ProtocolError::LimitExceeded);
+        }
         let mut outputs = Vec::with_capacity(output_count);
         for _ in 0..output_count {
             let value = reader.read_u64_le()?;
-            let spending_condition = read_bytes_u32(&mut reader)?.to_vec();
+            if value > params.max_money {
+                return Err(ProtocolError::LimitExceeded);
+            }
+            let raw = read_bytes_u32(&mut reader)?;
+            if raw.len() > params.max_spending_condition_bytes {
+                return Err(ProtocolError::LimitExceeded);
+            }
             outputs.push(TxOutput {
                 value,
-                spending_condition,
+                spending_condition: raw.to_vec(),
             });
         }
         let fee = reader.read_u64_le()?;
+        if fee > params.max_money {
+            return Err(ProtocolError::LimitExceeded);
+        }
         reader.finish()?;
         Ok(Self {
             version,
@@ -149,7 +181,7 @@ mod tests {
             }],
             outputs: vec![TxOutput {
                 value: 123,
-                spending_condition: b"condition".to_vec(),
+                spending_condition: vec![0u8; 32],
             }],
             fee: 2,
         };
@@ -159,5 +191,45 @@ mod tests {
         assert_eq!(Transaction::decode(&a).unwrap(), tx);
         assert_eq!(tx.txid().unwrap(), sha256(&a));
         assert_eq!(&a[..4], &1u32.to_le_bytes());
+    }
+
+    #[test]
+    fn oversized_counts_and_versions_are_rejected() {
+        use crate::params::ConsensusParams;
+        let params = ConsensusParams::devnet();
+        // Wrong version.
+        let tx = Transaction {
+            version: 999,
+            inputs: vec![],
+            outputs: vec![],
+            fee: 0,
+        };
+        let enc = tx.encode_to_vec().unwrap();
+        assert_eq!(
+            Transaction::decode_bounded(&enc, &params),
+            Err(ProtocolError::UnsupportedVersion)
+        );
+        // Too many inputs claimed on the wire.
+        let mut raw = Vec::new();
+        crate::codec::put_u32_le(&mut raw, 1);
+        crate::codec::put_u32_le(&mut raw, 1000);
+        assert_eq!(
+            Transaction::decode_bounded(&raw, &params),
+            Err(ProtocolError::LimitExceeded)
+        );
+        // Trailing bytes.
+        let mut enc = Transaction {
+            version: 1,
+            inputs: vec![],
+            outputs: vec![TxOutput { value: 1, spending_condition: vec![0u8; 32] }],
+            fee: 0,
+        }
+        .encode_to_vec()
+        .unwrap();
+        enc.push(0);
+        assert_eq!(
+            Transaction::decode_bounded(&enc, &params),
+            Err(ProtocolError::TrailingBytes)
+        );
     }
 }

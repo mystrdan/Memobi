@@ -20,24 +20,6 @@ pub struct BlockHeader {
     pub poarm_version: u32,
     pub poarm_nonce: u64,
     pub transaction_root: Hash32,
-    #[test]
-    fn poarm_seed_excludes_nonce_but_changes_with_epoch() {
-        let mut a = BlockHeader {
-            version: 1,
-            previous_block: Hash32([1u8; 32]),
-            height: BlockHeight(4),
-            timestamp: 100,
-            target: u64::MAX,
-            poarm_version: 0,
-            poarm_nonce: 1,
-            transaction_root: Hash32([2u8; 32]),
-        };
-        let first = a.poarm_seed(7).unwrap();
-        a.poarm_nonce = 99;
-        assert_eq!(first, a.poarm_seed(7).unwrap());
-        assert_ne!(first, a.poarm_seed(8).unwrap());
-    }
-
 }
 
 impl Encode for BlockHeader {
@@ -127,11 +109,11 @@ mod tests {
                     txid: Hash32([7u8; 32]),
                     index: 0,
                 },
-                unlocking_data: b"sig".to_vec(),
+                unlocking_data: vec![0u8; 96],
             }],
             outputs: vec![crate::TxOutput {
                 value: 10,
-                spending_condition: b"condition".to_vec(),
+                spending_condition: vec![0u8; 32],
             }],
             fee: 0,
         };
@@ -156,5 +138,23 @@ mod tests {
         assert_eq!(encoded.len(), 104);
         assert_eq!(encoded, header.encode_to_vec().unwrap());
         assert_eq!(header.block_id().unwrap(), sha256(&encoded));
+    }
+
+    #[test]
+    fn poarm_seed_excludes_nonce_but_changes_with_epoch() {
+        let mut a = BlockHeader {
+            version: 1,
+            previous_block: Hash32([1u8; 32]),
+            height: BlockHeight(4),
+            timestamp: 100,
+            target: u64::MAX,
+            poarm_version: 0,
+            poarm_nonce: 1,
+            transaction_root: Hash32([2u8; 32]),
+        };
+        let first = a.poarm_seed(7).unwrap();
+        a.poarm_nonce = 99;
+        assert_eq!(first, a.poarm_seed(7).unwrap());
+        assert_ne!(first, a.poarm_seed(8).unwrap());
     }
 }

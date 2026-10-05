@@ -8,16 +8,20 @@ pub mod block_builder;
 pub mod chain;
 pub mod chainwork;
 pub mod codec;
+pub mod crypto;
 pub mod difficulty;
 pub mod genesis;
 pub mod hash;
+pub mod mempool;
 pub mod p2p;
+pub mod params;
 pub mod pow;
 pub mod reward;
 pub mod sync;
 pub mod transaction;
 pub mod utxo;
 pub mod validation;
+pub mod wallet;
 
 pub use hash::Hash32;
 pub use transaction::{OutPoint, Transaction, TxInput, TxOutput};
@@ -43,4 +47,10 @@ pub enum ProtocolError {
     InvalidMessageVersion,
     InvalidMessageType,
     InvalidMessageSize,
+    LimitExceeded,
+    UnsupportedVersion,
+    InvalidSignature,
+    InvalidPublicKey,
+    InvalidTarget,
 }
+
