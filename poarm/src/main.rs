@@ -53,64 +53,12 @@ fn main() {
     });
 
     println!();
-    println!("Devnet mining smoke test");
-    let mut chain = ChainState::default();
-    let genesis = build_genesis(GenesisConfig::provisional());
-    chain.apply_block(&genesis).expect("apply genesis");
-    println!("  genesis_height: {}", chain.height.unwrap());
-
-    let miner_pubkey = memobi_core::crypto::SecretKey::from_bytes(&[42u8; 32]).public_key();
-    let template = BlockTemplate {
-        version: 1,
-        previous_block: chain.tip.unwrap(),
-        height: BlockHeight(chain.height.unwrap() + 1),
-        timestamp: 1,
-        target: u64::MAX,
-        poarm_version: memobi_poarm::VERSION,
-        poarm_nonce: 0,
-    };
-    let epoch = template.height.0;
-    let mut block = template
-        .build_mining_block(
-            Vec::new(),
-            miner_pubkey.to_vec(),
-            RewardConfig::provisional(),
-        )
-        .expect("template");
-
-    let seed_hash = block.header.poarm_seed(epoch).expect("seed");
-    let mining = search_candidate_c(
-        seed_hash.as_bytes(),
-        epoch,
-        Config {
-            memory_kib: 1,
-            rounds: 1,
-        },
-        block.header.target,
-        0,
-        10_000,
-    )
-    .expect("easy devnet target should be found");
-    block.header.poarm_nonce = mining.nonce;
-    // Independent verification before acceptance (never trust miner claim).
-    assert!(memobi_poarm::miner::verify_candidate_c(
-        seed_hash.as_bytes(),
-        epoch,
-        Config {
-            memory_kib: 1,
-            rounds: 1
-        },
-        block.header.target,
-        mining.nonce,
-        &mining.proof,
-    ));
-
-    let block_id = chain
-        .apply_validated_block(&block, Hash32(mining.proof))
-        .expect("validated block");
-    println!("  mined_height: {}", chain.height.unwrap());
-    println!("  nonce: {}", mining.nonce);
-    println!("  attempts: {}", mining.attempts);
-    println!("  block_id: {:02x?}", block_id.as_bytes());
-    println!("  status: end-to-end block accepted");
+    println!("Devnet multi-block producer");
+    let result = memobi_poarm::devnet::produce(memobi_poarm::devnet::DevnetProducerConfig::default())
+        .expect("deterministic devnet production");
+    println!("  produced_blocks: {}", result.blocks.len());
+    println!("  final_height: {}", result.chain.height.unwrap());
+    println!("  final_tip: {:02x?}", result.chain.tip.unwrap().as_bytes());
+    println!("  cumulative_work: {}", result.chain.work.0);
+    println!("  status: deterministic multi-block chain accepted");
 }
