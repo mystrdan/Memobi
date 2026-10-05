@@ -18,6 +18,7 @@ pub mod params;
 pub mod pow;
 pub mod reward;
 pub mod sync;
+pub mod storage;
 pub mod transaction;
 pub mod utxo;
 pub mod validation;
