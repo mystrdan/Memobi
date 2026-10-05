@@ -43,21 +43,26 @@
 - [x] Provisional deterministic genesis builder
 - [x] Provisional mining block builder with coinbase
 - [x] Add provisional devnet block builder
-- [x] Provisional deterministic genesis\n- [ ] Final genesis block
+- [x] Provisional deterministic genesis
+- [ ] Final genesis block
 - [x] Provisional coinbase/reward validation boundary
 - [x] Transaction validation skeleton
 - [x] UTXO set skeleton
-- [x] Provisional block validation\n- [ ] Final consensus block validation
+- [x] Provisional block validation
+- [ ] Final consensus block validation
 - [x] Add provisional cumulative-work scoring
 - [x] PoARM header-seed construction
 - [x] End-to-end PoARM devnet mining smoke test
 - [x] Provisional PoARM mining\n- [ ] Production PoARM mining
 - [x] Difficulty-adjustment laboratory model
-- [x] Provisional difficulty enforcement\n- [ ] Final difficulty adjustment
+- [x] Provisional difficulty enforcement
+- [ ] Final difficulty adjustment
 - [x] P2P message serialization skeleton
 - [x] Add bounded P2P collection/payload decoding
 - [ ] P2P networking
 - [x] Add provisional synchronization state and locator
+- [x] Add bounded synchronization request planner
+- [x] Add persistent canonical-header storage foundation
 - [x] Wallet key-selection requirements
 - [x] Provisional wallet and key handling\n- [ ] Final wallet/key specification
 - [ ] CLI node and miner
