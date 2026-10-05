@@ -40,7 +40,7 @@ impl BlockTemplate {
             .ok_or(ProtocolError::LengthOverflow)?;
         let coinbase = Transaction {
             version: 1,
-            inputs: Vec::new(),
+            inputs: vec![Transaction::coinbase_marker(self.height.0)],
             outputs: vec![crate::TxOutput {
                 value: payout,
                 spending_condition: payout_condition,
