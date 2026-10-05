@@ -50,7 +50,7 @@ impl Node {
     }
 
     pub fn start_peer(&mut self) -> Message {
-        self.peer.start()
+        self.peer.start_with_height(self.chain.height.unwrap_or(0))
     }
 
     pub fn receive_peer_message(
