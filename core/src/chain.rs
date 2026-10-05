@@ -116,6 +116,26 @@ impl ChainState {
         Ok(id)
     }
 
+    pub fn apply_validated_block_with_stores(
+        &mut self,
+        block: &Block,
+        proof: Hash32,
+        params: &crate::params::ConsensusParams,
+        now_secs: u64,
+        parent_timestamp: Option<u64>,
+        header_store: &mut crate::storage::HeaderStore,
+        block_store: &mut crate::storage::BlockStore,
+    ) -> Result<Hash32, ChainError> {
+        let mut staged = self.clone();
+        let id = staged.apply_validated_block_with_params_and_context(
+            block, proof, params, now_secs, parent_timestamp,
+        )?;
+        block_store.append(block).map_err(ChainError::Storage)?;
+        header_store.append(&block.header).map_err(ChainError::Storage)?;
+        *self = staged;
+        Ok(id)
+    }
+
     pub fn apply_block(&mut self, block: &Block) -> Result<Hash32, ChainError> {
         let id = self.apply_block_with_params(block, &crate::params::ConsensusParams::devnet())?;
         // `apply_block_with_params` stages state but defers tip/work commit
