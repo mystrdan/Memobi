@@ -196,6 +196,61 @@ impl Message {
     }
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PeerPhase {
+    Disconnected,
+    VersionSent,
+    Established,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PeerSession {
+    pub phase: PeerPhase,
+    pub remote_nonce: Option<u64>,
+    pub remote_height: Option<u64>,
+}
+
+impl Default for PeerSession {
+    fn default() -> Self {
+        Self { phase: PeerPhase::Disconnected, remote_nonce: None, remote_height: None }
+    }
+}
+
+impl PeerSession {
+    pub fn start(&mut self) -> Message {
+        self.phase = PeerPhase::VersionSent;
+        Message::Version {
+            protocol_version: 1,
+            node_nonce: 0,
+            height: 0,
+        }
+    }
+
+    pub fn receive(&mut self, message: Message) -> Result<Option<Message>, ProtocolError> {
+        match message {
+            Message::Version { protocol_version, node_nonce, height } => {
+                if protocol_version != 1 || self.remote_nonce == Some(node_nonce) {
+                    return Err(ProtocolError::UnsupportedVersion);
+                }
+                self.remote_nonce = Some(node_nonce);
+                self.remote_height = Some(height);
+                self.phase = PeerPhase::Established;
+                Ok(Some(Message::Verack))
+            }
+            Message::Verack if self.phase == PeerPhase::VersionSent => {
+                self.phase = PeerPhase::Established;
+                Ok(None)
+            }
+            Message::Ping { nonce } if self.phase == PeerPhase::Established => {
+                Ok(Some(Message::Pong { nonce }))
+            }
+            Message::Pong { .. } if self.phase == PeerPhase::Established => Ok(None),
+            _ => Err(ProtocolError::InvalidMessageType),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
