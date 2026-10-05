@@ -162,6 +162,31 @@ mod tests {
     }
 
     #[test]
+    fn poarm_seed_uses_consensus_domain() {
+        let header = BlockHeader {
+            version: 1,
+            previous_block: Hash32([1u8; 32]),
+            height: BlockHeight(4),
+            timestamp: 100,
+            target: u64::MAX,
+            poarm_version: 0,
+            poarm_nonce: 0,
+            transaction_root: Hash32([2u8; 32]),
+        };
+        let params = crate::params::ConsensusParams::devnet();
+        assert_eq!(
+            header.poarm_seed(7).unwrap(),
+            header.poarm_seed_with_params(&params, 7).unwrap()
+        );
+        let mut alternate = params;
+        alternate.poarm_domain = "MEMOBI-POARM-TEST";
+        assert_ne!(
+            header.poarm_seed_with_params(&params, 7).unwrap(),
+            header.poarm_seed_with_params(&alternate, 7).unwrap()
+        );
+    }
+
+    #[test]
     fn poarm_seed_excludes_nonce_but_changes_with_epoch() {
         let mut a = BlockHeader {
             version: 1,
