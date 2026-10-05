@@ -138,6 +138,25 @@ impl Node {
         Ok(id)
     }
 
+    /// Restore a node from the canonical durable block log.
+    ///
+    /// Consensus validation is replayed rather than trusting persisted UTXO
+    /// state, which keeps restart recovery auditable and privacy-friendly:
+    /// only canonical chain data is required to reconstruct spendable state.
+    pub fn recover_from_block_store(
+        params: ConsensusParams,
+        store: &mut crate::storage::BlockStore,
+    ) -> Result<Self, NodeError> {
+        let chain = ChainState::recover_from_block_store(&params, store)?;
+        let height = chain.height.unwrap_or(0);
+        Ok(Self {
+            chain,
+            peer: PeerSession::default(),
+            sync: SyncPlanner::new(height, height, SyncLimits::default()),
+            params,
+        })
+    }
+
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         self.sync.next_request(self.chain.tip)
     }
