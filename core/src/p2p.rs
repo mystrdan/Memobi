@@ -256,6 +256,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn peer_session_completes_version_handshake_and_ping() {
+        let mut a = PeerSession::default();
+        assert_eq!(a.phase, PeerPhase::Disconnected);
+        assert!(matches!(a.start(), Message::Version { .. }));
+        let reply = a.receive(Message::Verack).unwrap();
+        assert_eq!(reply, None);
+        assert_eq!(a.phase, PeerPhase::Established);
+        assert_eq!(a.receive(Message::Ping { nonce: 55 }).unwrap(), Some(Message::Pong { nonce: 55 }));
+    }
+
+    #[test]
+    fn peer_session_records_remote_version_height() {
+        let mut peer = PeerSession::default();
+        let reply = peer.receive(Message::Version {
+            protocol_version: 1,
+            node_nonce: 42,
+            height: 123,
+        }).unwrap();
+        assert_eq!(reply, Some(Message::Verack));
+        assert_eq!(peer.phase, PeerPhase::Established);
+        assert_eq!(peer.remote_nonce, Some(42));
+        assert_eq!(peer.remote_height, Some(123));
+    }
+
+    #[test]
     fn oversized_collection_is_rejected() {
         let mut bytes = vec![VERSION, 2];
         bytes.extend_from_slice(&u32::MAX.to_le_bytes());
