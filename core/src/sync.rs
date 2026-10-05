@@ -70,6 +70,71 @@ impl SyncProgress {
     }
 }
 
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SyncLimits {
+    pub max_header_batch: u64,
+    pub max_block_batch: u64,
+}
+
+impl Default for SyncLimits {
+    fn default() -> Self {
+        Self { max_header_batch: 2_000, max_block_batch: 256 }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SyncRequest {
+    GetHeaders { locator: HeaderLocator },
+    GetBlocks { start_height: u64, count: u64 },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SyncPlanner {
+    pub limits: SyncLimits,
+    pub progress: SyncProgress,
+}
+
+impl SyncPlanner {
+    pub fn new(local_height: u64, best_known_height: u64, limits: SyncLimits) -> Self {
+        Self { limits, progress: SyncProgress::new(local_height, best_known_height) }
+    }
+
+    pub fn next_request(&mut self, tip: Option<Hash32>) -> Option<SyncRequest> {
+        if self.progress.best_known_height <= self.progress.local_height {
+            self.progress.state = SyncState::Synced;
+            return None;
+        }
+
+        match self.progress.state {
+            SyncState::HeaderSync | SyncState::Idle | SyncState::Synced => {
+                self.progress.state = SyncState::HeaderSync;
+                Some(SyncRequest::GetHeaders {
+                    locator: HeaderLocator::from_tip(tip),
+                })
+            }
+            SyncState::BlockSync => {
+                let remaining = self.progress.best_known_height - self.progress.local_height;
+                Some(SyncRequest::GetBlocks {
+                    start_height: self.progress.local_height.saturating_add(1),
+                    count: remaining.min(self.limits.max_block_batch),
+                })
+            }
+        }
+    }
+
+    pub fn headers_received(&mut self, highest_height: u64) {
+        self.progress.update_best_height(highest_height.max(self.progress.best_known_height));
+        if self.progress.state != SyncState::Synced {
+            self.progress.state = SyncState::BlockSync;
+        }
+    }
+
+    pub fn blocks_applied(&mut self, highest_height: u64) {
+        self.progress.advance_local_height(highest_height);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
