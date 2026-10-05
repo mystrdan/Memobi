@@ -350,6 +350,37 @@ mod tests {
     }
 
     #[test]
+    fn parameterized_fork_replay_uses_supplied_consensus_params() {
+        let mut params = ConsensusParams::devnet();
+        params.tx_version = 7;
+        params.poarm_domain = "MEMOBI-POARM-TEST";
+
+        let genesis = crate::genesis::devnet_genesis();
+        let mut candidate = ChainState::default();
+        candidate.apply_block(&genesis).unwrap();
+
+        let miner = crate::crypto::SecretKey::from_bytes(&[19u8; 32]).public_key();
+        let template = crate::block_builder::BlockTemplate {
+            version: params.block_version,
+            previous_block: candidate.tip.unwrap(),
+            height: BlockHeight(1),
+            timestamp: 10,
+            target: params.max_target,
+            poarm_version: params.poarm_version,
+            poarm_nonce: 0,
+        };
+        let block = template
+            .build_mining_block_with_params(Vec::new(), miner.to_vec(), &params)
+            .unwrap();
+        assert_eq!(block.transactions[0].version, params.tx_version);
+
+        let fork = vec![(genesis, Hash32::ZERO), (block, Hash32::ZERO)];
+        let mut state = ChainState::default();
+        assert!(state.replay_fork_with_params(&fork, &params).unwrap());
+        assert_eq!(state.height, Some(1));
+    }
+
+    #[test]
     fn transactions_can_spend_outputs_created_earlier_in_the_block() {
         let params = ConsensusParams::devnet();
         let sk = crate::crypto::SecretKey::from_bytes(&[8u8; 32]);
