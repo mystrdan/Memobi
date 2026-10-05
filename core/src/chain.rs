@@ -247,7 +247,6 @@ impl ChainState {
         }
         Ok(wins)
     }
-
 }
 
 #[cfg(test)]
