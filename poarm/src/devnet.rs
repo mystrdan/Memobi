@@ -166,9 +166,10 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
         block.header.poarm_nonce = mining.nonce;
 
         let proof = Hash32(mining.proof);
-        chain.apply_validated_block_with_context(
+        chain.apply_validated_block_with_params_and_context(
             &block,
             proof,
+            &params,
             timestamp,
             Some(timestamp - config.timestamp_step),
         )?;
