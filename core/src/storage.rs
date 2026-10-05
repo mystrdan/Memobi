@@ -226,6 +226,31 @@ impl HeaderStore {
 }
 
 #[cfg(test)]
+mod block_store_tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn append_reopen_and_read_blocks() {
+        let path = std::env::temp_dir().join(format!(
+            "memobi-blocks-{}.db",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let block = crate::genesis::devnet_genesis();
+        {
+            let mut store = BlockStore::open(&path).unwrap();
+            store.append(&block).unwrap();
+            assert_eq!(store.len(), 1);
+        }
+        {
+            let mut store = BlockStore::open(&path).unwrap();
+            assert_eq!(store.read_all(&crate::params::ConsensusParams::devnet()).unwrap(), vec![block]);
+        }
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
