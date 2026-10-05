@@ -64,7 +64,10 @@ fn read_bounded_bytes(reader: &mut Reader<'_>) -> Result<Vec<u8>, ProtocolError>
 }
 
 impl Message {
-    pub fn encode_block(block: &crate::chain::Block, proof: Hash32) -> Result<Vec<u8>, ProtocolError> {
+    pub fn encode_block(
+        block: &crate::chain::Block,
+        proof: Hash32,
+    ) -> Result<Vec<u8>, ProtocolError> {
         let block_bytes = block.encode_to_vec()?;
         let mut out = Vec::with_capacity(32 + block_bytes.len());
         out.extend_from_slice(proof.as_bytes());
@@ -72,12 +75,18 @@ impl Message {
         Ok(out)
     }
 
-    pub fn decode_block(bytes: &[u8], params: &crate::params::ConsensusParams) -> Result<(crate::chain::Block, Hash32), ProtocolError> {
+    pub fn decode_block(
+        bytes: &[u8],
+        params: &crate::params::ConsensusParams,
+    ) -> Result<(crate::chain::Block, Hash32), ProtocolError> {
         let mut reader = Reader::new(bytes);
         let proof = Hash32(reader.read_array()?);
         let block_bytes = crate::codec::read_bytes_u32(&mut reader)?;
         reader.finish()?;
-        Ok((crate::chain::Block::decode_bounded(block_bytes, params)?, proof))
+        Ok((
+            crate::chain::Block::decode_bounded(block_bytes, params)?,
+            proof,
+        ))
     }
 
     pub fn kind(&self) -> u8 {

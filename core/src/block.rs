@@ -39,7 +39,10 @@ impl Encode for BlockHeader {
 impl crate::chain::Block {
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
         let mut out = self.header.encode_to_vec()?;
-        put_u32_le(&mut out, u32::try_from(self.transactions.len()).map_err(|_| ProtocolError::LengthOverflow)?);
+        put_u32_le(
+            &mut out,
+            u32::try_from(self.transactions.len()).map_err(|_| ProtocolError::LengthOverflow)?,
+        );
         for tx in &self.transactions {
             let encoded = tx.encode_to_vec()?;
             crate::codec::put_bytes(&mut out, &encoded)?;
@@ -71,7 +74,10 @@ impl crate::chain::Block {
         if expected != header.transaction_root {
             return Err(ProtocolError::InvalidTransactionRoot);
         }
-        Ok(Self { header, transactions })
+        Ok(Self {
+            header,
+            transactions,
+        })
     }
 }
 
@@ -123,7 +129,6 @@ impl BlockHeader {
         r.finish()?;
         Ok(header)
     }
-
 
     pub fn encode_to_vec(&self) -> Result<Vec<u8>, ProtocolError> {
         let mut out = Vec::with_capacity(4 + 32 + 8 + 8 + 8 + 4 + 8 + 32);
@@ -183,7 +188,8 @@ mod tests {
         let decoded = crate::chain::Block::decode_bounded(
             &encoded,
             &crate::params::ConsensusParams::devnet(),
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(decoded, block);
     }
 
