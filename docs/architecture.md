@@ -64,3 +64,12 @@ The current persistence layer keeps canonical block headers in an append-only, c
 ### Peer boundary
 
 p2p::PeerSession now owns the protocol handshake/liveness phase independently of transport. It tracks version establishment, remote height, and Ping/Pong handling; socket transport and peer selection remain outside the core protocol state machine.
+
+
+### Privacy-by-design boundary
+
+Memobi is intended to be a privacy-focused chain. Consensus and storage layers should minimize unnecessary on-chain data. Future messaging and file-transfer features must use end-to-end encryption and should not put plaintext message content, filenames, or private payloads on the blockchain. Messaging identities should be designed separately from long-lived spending identity where practical.
+
+### Durable node state
+
+The node now has an append-only block store alongside the canonical-header store. ChainState can stage consensus state and persist both the full block and header before committing the in-memory state. Restart/replay recovery is the next step; the durable stores are not yet the final database format.
