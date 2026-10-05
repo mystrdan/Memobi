@@ -287,26 +287,20 @@ fn mempool_transactions_are_assembled_into_blocks() {
     let miner = miner_sk.public_key();
     let mut chain = ChainState::default();
     chain.apply_block(&devnet_genesis()).unwrap();
-    // KNOWN LIMITATION: coinbase txs don't commit to the block height, so an
-    // identical payout re-creates the same outpoint every block (entry.height
-    // tracks the tip) and can never mature. Work around: mine our coinbase
-    // once (height 33), then top up with a throwaway payout key so our
-    // outpoint stops being overwritten for the 10-block maturity window.
-    let other_pk = SecretKey::from_bytes(&[42u8; 32]).public_key();
-    for _ in 1..=32 {
+    // The same payout key is deliberately reused across blocks. Coinbase
+    // height is committed by the reserved marker, so each reward has a
+    // distinct transaction ID/outpoint and the height-1 reward can mature.
+    let mut own = None;
+    for height in 1u64..=11 {
         let tip_ts = chain.headers.last().unwrap().timestamp;
-        let (b, p) = mine_next(&chain, &params, other_pk, tip_ts + 10, u64::MAX);
+        let (b, p) = mine_next(&chain, &params, miner, tip_ts + 10, u64::MAX);
+        if height == 1 {
+            own = Some(b.clone());
+        }
         chain.apply_validated_block(&b, p).unwrap();
     }
-    let tip_ts = chain.headers.last().unwrap().timestamp;
-    let (own, proof) = mine_next(&chain, &params, miner, tip_ts + 10, u64::MAX);
-    chain.apply_validated_block(&own, proof).unwrap();
-    for _ in 34..=43 {
-        let tip_ts = chain.headers.last().unwrap().timestamp;
-        let (b, p) = mine_next(&chain, &params, other_pk, tip_ts + 10, u64::MAX);
-        chain.apply_validated_block(&b, p).unwrap();
-    }
-    assert_eq!(chain.height, Some(43));
+    let own = own.unwrap();
+    assert_eq!(chain.height, Some(11));
 
     let op = memobi_core::OutPoint {
         txid: own.transactions[0].txid().unwrap(),
