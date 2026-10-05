@@ -54,8 +54,9 @@ fn main() {
 
     println!();
     println!("Devnet multi-block producer");
-    let result = memobi_poarm::devnet::produce(memobi_poarm::devnet::DevnetProducerConfig::default())
-        .expect("deterministic devnet production");
+    let result =
+        memobi_poarm::devnet::produce(memobi_poarm::devnet::DevnetProducerConfig::default())
+            .expect("deterministic devnet production");
     println!("  produced_blocks: {}", result.blocks.len());
     println!("  final_height: {}", result.chain.height.unwrap());
     println!("  final_tip: {:02x?}", result.chain.tip.unwrap().as_bytes());

@@ -14,7 +14,10 @@ use memobi_core::{
     reward::RewardConfig,
 };
 
-use crate::{Config, miner::{MiningResult, search_candidate_c, verify_candidate_c}};
+use crate::{
+    Config,
+    miner::{MiningResult, search_candidate_c, verify_candidate_c},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DevnetProducerConfig {
@@ -90,7 +93,9 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
     let genesis_ts = genesis.header.timestamp;
     chain.apply_block(&genesis)?;
 
-    let payout = SecretKey::from_bytes(&config.payout_seed).public_key().to_vec();
+    let payout = SecretKey::from_bytes(&config.payout_seed)
+        .public_key()
+        .to_vec();
     let mut produced = Vec::with_capacity(config.blocks as usize);
 
     for offset in 0..config.blocks {
