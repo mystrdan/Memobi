@@ -91,11 +91,15 @@ impl BlockStore {
 
     pub fn append(&mut self, block: &crate::chain::Block) -> Result<(), StorageError> {
         let bytes = block.encode_to_vec()?;
-        put_u32_le(&mut self.file_bytes_prefix(), bytes.len() as u32);
+        let mut prefix = Vec::with_capacity(4);
+        put_u32_le(&mut prefix, bytes.len() as u32);
+        self.file.write_all(&prefix)?;
+        self.file.write_all(&bytes)?;
+        self.file.flush()?;
+        self.file.sync_data()?;
+        self.count += 1;
         Ok(())
     }
-
-    fn file_bytes_prefix(&mut self) -> Vec<u8> { Vec::new() }
 
     pub fn read_all(&mut self, params: &crate::params::ConsensusParams) -> Result<Vec<crate::chain::Block>, StorageError> {
         let mut file = File::open(&self.path)?;
