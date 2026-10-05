@@ -116,6 +116,28 @@ impl Node {
         Ok(id)
     }
 
+    pub fn apply_received_block_with_stores(
+        &mut self,
+        block: Block,
+        proof: Hash32,
+        now_secs: u64,
+        header_store: &mut HeaderStore,
+        block_store: &mut crate::storage::BlockStore,
+    ) -> Result<Hash32, NodeError> {
+        let parent_timestamp = self.chain.headers.last().map(|h| h.timestamp);
+        let id = self.chain.apply_validated_block_with_stores(
+            &block,
+            proof,
+            &self.params,
+            now_secs,
+            parent_timestamp,
+            header_store,
+            block_store,
+        )?;
+        self.sync.blocks_applied(block.header.height.0);
+        Ok(id)
+    }
+
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         self.sync.next_request(self.chain.tip)
     }
