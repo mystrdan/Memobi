@@ -30,10 +30,14 @@ pub enum StorageError {
 }
 
 impl From<io::Error> for StorageError {
-    fn from(value: io::Error) -> Self { Self::Io(value) }
+    fn from(value: io::Error) -> Self {
+        Self::Io(value)
+    }
 }
 impl From<ProtocolError> for StorageError {
-    fn from(value: ProtocolError) -> Self { Self::Protocol(value) }
+    fn from(value: ProtocolError) -> Self {
+        Self::Protocol(value)
+    }
 }
 
 pub struct HeaderStore {
@@ -45,7 +49,11 @@ pub struct HeaderStore {
 impl HeaderStore {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, StorageError> {
         let path = path.as_ref().to_path_buf();
-        let mut file = OpenOptions::new().create(true).read(true).append(true).open(&path)?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(&path)?;
         let len = file.metadata()?.len();
         let count = if len == 0 {
             file.write_all(MAGIC)?;
@@ -53,11 +61,15 @@ impl HeaderStore {
             file.flush()?;
             0
         } else {
-            if len < 12 { return Err(StorageError::Corrupt("truncated store header")); }
+            if len < 12 {
+                return Err(StorageError::Corrupt("truncated store header"));
+            }
             let mut prefix = [0u8; 12];
             file.seek(SeekFrom::Start(0))?;
             file.read_exact(&mut prefix)?;
-            if &prefix[..8] != MAGIC { return Err(StorageError::Corrupt("invalid store magic")); }
+            if &prefix[..8] != MAGIC {
+                return Err(StorageError::Corrupt("invalid store magic"));
+            }
             if u32::from_le_bytes(prefix[8..12].try_into().unwrap()) != VERSION {
                 return Err(StorageError::Corrupt("unsupported store version"));
             }
@@ -70,8 +82,12 @@ impl HeaderStore {
         Ok(Self { path, file, count })
     }
 
-    pub fn path(&self) -> &Path { &self.path }
-    pub fn len(&self) -> u64 { self.count }
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+    pub fn len(&self) -> u64 {
+        self.count
+    }
 
     pub fn append(&mut self, header: &BlockHeader) -> Result<(), StorageError> {
         let bytes = header.encode_to_vec()?;
@@ -138,7 +154,10 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_path() -> PathBuf {
-        let n = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let n = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         std::env::temp_dir().join(format!("memobi-headers-{n}.db"))
     }
 

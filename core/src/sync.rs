@@ -70,7 +70,6 @@ impl SyncProgress {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SyncLimits {
     pub max_block_batch: u64,
@@ -78,7 +77,9 @@ pub struct SyncLimits {
 
 impl Default for SyncLimits {
     fn default() -> Self {
-        Self { max_block_batch: 256 }
+        Self {
+            max_block_batch: 256,
+        }
     }
 }
 
@@ -96,7 +97,10 @@ pub struct SyncPlanner {
 
 impl SyncPlanner {
     pub fn new(local_height: u64, best_known_height: u64, limits: SyncLimits) -> Self {
-        Self { limits, progress: SyncProgress::new(local_height, best_known_height) }
+        Self {
+            limits,
+            progress: SyncProgress::new(local_height, best_known_height),
+        }
     }
 
     pub fn next_request(&mut self, tip: Option<Hash32>) -> Option<SyncRequest> {
@@ -123,7 +127,8 @@ impl SyncPlanner {
     }
 
     pub fn headers_received(&mut self, highest_height: u64) {
-        self.progress.update_best_height(highest_height.max(self.progress.best_known_height));
+        self.progress
+            .update_best_height(highest_height.max(self.progress.best_known_height));
         if self.progress.state != SyncState::Synced {
             self.progress.state = SyncState::BlockSync;
         }
@@ -138,15 +143,26 @@ impl SyncPlanner {
 mod tests {
     use super::*;
 
-
     #[test]
     fn planner_batches_blocks_and_stops_when_caught_up() {
-        let mut planner = SyncPlanner::new(10, 700, SyncLimits { max_block_batch: 64 });
-        assert!(matches!(planner.next_request(Some(Hash32([7; 32]))), Some(SyncRequest::GetHeaders { .. })));
+        let mut planner = SyncPlanner::new(
+            10,
+            700,
+            SyncLimits {
+                max_block_batch: 64,
+            },
+        );
+        assert!(matches!(
+            planner.next_request(Some(Hash32([7; 32]))),
+            Some(SyncRequest::GetHeaders { .. })
+        ));
         planner.headers_received(700);
         assert_eq!(
             planner.next_request(Some(Hash32([7; 32]))),
-            Some(SyncRequest::GetBlocks { start_height: 11, count: 64 })
+            Some(SyncRequest::GetBlocks {
+                start_height: 11,
+                count: 64
+            })
         );
         planner.blocks_applied(700);
         assert_eq!(planner.progress.state, SyncState::Synced);
@@ -159,7 +175,10 @@ mod tests {
         planner.headers_received(100);
         assert_eq!(
             planner.next_request(None),
-            Some(SyncRequest::GetBlocks { start_height: 99, count: 2 })
+            Some(SyncRequest::GetBlocks {
+                start_height: 99,
+                count: 2
+            })
         );
     }
 
