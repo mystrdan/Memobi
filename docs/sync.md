@@ -18,13 +18,14 @@ The core now exposes a bounded `SyncPlanner`. It separates peer height discovery
 
 Block requests are capped by `SyncLimits::max_block_batch`, and a planner never requests beyond the remaining height gap. This is intended to be usable by both a direct network transport and a mobile resumable transport later.
 
-## Persistent headers
+## Persistent chain data
 
-`storage::HeaderStore` provides an append-only, checksummed on-disk header log. It is intentionally separate from UTXO persistence: canonical headers can survive process restarts now, while full block/state snapshots are added without making storage format assumptions part of the consensus wire protocol.
+`storage::HeaderStore` provides an append-only, checksummed on-disk header log. `storage::BlockStore` now persists canonical blocks together with their PoARM proofs. Restart recovery replays those blocks through the normal consensus validation path to reconstruct UTXOs rather than trusting a persisted state snapshot.
 
 ## Future requirements
 
 - fork-aware locators
+- durable block/state consistency checks
 - multiple peers
 - duplicate suppression
 - bounded requests
