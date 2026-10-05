@@ -34,16 +34,9 @@ fn mine_next(
     };
     let epoch = template.height.0;
     let mut block = template
-        .build_mining_block(
-            Vec::new(),
-            miner_pk.to_vec(),
-            memobi_core::reward::RewardConfig {
-                initial_reward: params.initial_reward,
-                halving_interval: params.halving_interval,
-            },
-        )
+        .build_mining_block_with_params(Vec::new(), miner_pk.to_vec(), params)
         .unwrap();
-    let seed = block.header.poarm_seed(epoch).unwrap();
+    let seed = block.header.poarm_seed_with_params(params, epoch).unwrap();
     let found = memobi_poarm::miner::search_candidate_c(
         seed.as_bytes(),
         epoch,
@@ -344,7 +337,7 @@ fn mempool_transactions_are_assembled_into_blocks() {
         miner.to_vec(),
     )
     .unwrap();
-    assert_eq!(block.header.height, BlockHeight(44));
+    assert_eq!(block.header.height, BlockHeight(12));
     assert_eq!(block.header.previous_block, chain.tip.unwrap());
     assert_eq!(block.header.target, u64::MAX);
     assert_eq!(block.transactions.len(), 2);
