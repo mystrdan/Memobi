@@ -30,6 +30,7 @@ pub enum ChainError {
     HeightMismatch,
     InvalidTransactionRoot,
     InvalidHeader(crate::validation::BlockValidationError),
+    Storage(crate::storage::StorageError),
 }
 
 #[derive(Debug, Clone, Default)]
@@ -110,12 +111,7 @@ impl ChainState {
             now_secs,
             parent_timestamp,
         )?;
-        store.append(&block.header).map_err(|e| {
-            ChainError::Serialization(match e {
-                crate::storage::StorageError::Protocol(err) => err,
-                _ => crate::ProtocolError::LimitExceeded,
-            })
-        })?;
+        store.append(&block.header).map_err(ChainError::Storage)?;
         *self = staged;
         Ok(id)
     }
