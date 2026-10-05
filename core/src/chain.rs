@@ -128,10 +128,16 @@ impl ChainState {
     ) -> Result<Hash32, ChainError> {
         let mut staged = self.clone();
         let id = staged.apply_validated_block_with_params_and_context(
-            block, proof, params, now_secs, parent_timestamp,
+            block,
+            proof,
+            params,
+            now_secs,
+            parent_timestamp,
         )?;
         block_store.append(block).map_err(ChainError::Storage)?;
-        header_store.append(&block.header).map_err(ChainError::Storage)?;
+        header_store
+            .append(&block.header)
+            .map_err(ChainError::Storage)?;
         *self = staged;
         Ok(id)
     }

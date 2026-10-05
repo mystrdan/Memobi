@@ -52,7 +52,11 @@ pub struct BlockStore {
 impl BlockStore {
     pub fn open(path: impl AsRef<Path>) -> Result<Self, StorageError> {
         let path = path.as_ref().to_path_buf();
-        let mut file = OpenOptions::new().create(true).read(true).append(true).open(&path)?;
+        let mut file = OpenOptions::new()
+            .create(true)
+            .read(true)
+            .append(true)
+            .open(&path)?;
         let len = file.metadata()?.len();
         let count = if len == 0 {
             file.write_all(BLOCK_MAGIC)?;
@@ -61,11 +65,15 @@ impl BlockStore {
             file.sync_data()?;
             0
         } else {
-            if len < 12 { return Err(StorageError::Corrupt("truncated block store header")); }
+            if len < 12 {
+                return Err(StorageError::Corrupt("truncated block store header"));
+            }
             let mut prefix = [0u8; 12];
             file.seek(SeekFrom::Start(0))?;
             file.read_exact(&mut prefix)?;
-            if &prefix[..8] != BLOCK_MAGIC || u32::from_le_bytes(prefix[8..12].try_into().unwrap()) != BLOCK_VERSION {
+            if &prefix[..8] != BLOCK_MAGIC
+                || u32::from_le_bytes(prefix[8..12].try_into().unwrap()) != BLOCK_VERSION
+            {
                 return Err(StorageError::Corrupt("invalid block store header"));
             }
             let mut reader = Reader::new(&{
@@ -76,10 +84,14 @@ impl BlockStore {
             });
             let mut n = 0u64;
             while reader.remaining() > 0 {
-                if reader.remaining() < 4 { return Err(StorageError::Corrupt("truncated block record")); }
+                if reader.remaining() < 4 {
+                    return Err(StorageError::Corrupt("truncated block record"));
+                }
                 let len = reader.read_u32_le()? as usize;
                 let raw = reader.read_bytes(len)?;
-                if raw.is_empty() { return Err(StorageError::Corrupt("empty block record")); }
+                if raw.is_empty() {
+                    return Err(StorageError::Corrupt("empty block record"));
+                }
                 n += 1;
             }
             n
@@ -87,7 +99,9 @@ impl BlockStore {
         Ok(Self { path, file, count })
     }
 
-    pub fn len(&self) -> u64 { self.count }
+    pub fn len(&self) -> u64 {
+        self.count
+    }
 
     pub fn append(&mut self, block: &crate::chain::Block) -> Result<(), StorageError> {
         let bytes = block.encode_to_vec()?;
@@ -101,17 +115,24 @@ impl BlockStore {
         Ok(())
     }
 
-    pub fn read_all(&mut self, params: &crate::params::ConsensusParams) -> Result<Vec<crate::chain::Block>, StorageError> {
+    pub fn read_all(
+        &mut self,
+        params: &crate::params::ConsensusParams,
+    ) -> Result<Vec<crate::chain::Block>, StorageError> {
         let mut file = File::open(&self.path)?;
         let mut bytes = Vec::new();
         file.read_to_end(&mut bytes)?;
-        if bytes.len() < 12 || &bytes[..8] != BLOCK_MAGIC { return Err(StorageError::Corrupt("invalid block store")); }
+        if bytes.len() < 12 || &bytes[..8] != BLOCK_MAGIC {
+            return Err(StorageError::Corrupt("invalid block store"));
+        }
         let mut reader = Reader::new(&bytes[12..]);
         let mut blocks = Vec::with_capacity(self.count as usize);
         while reader.remaining() > 0 {
             let len = reader.read_u32_le()? as usize;
             let raw = reader.read_bytes(len)?;
-            blocks.push(crate::chain::Block::decode_bounded(raw, params).map_err(StorageError::Protocol)?);
+            blocks.push(
+                crate::chain::Block::decode_bounded(raw, params).map_err(StorageError::Protocol)?,
+            );
         }
         Ok(blocks)
     }
@@ -234,7 +255,10 @@ mod block_store_tests {
     fn append_reopen_and_read_blocks() {
         let path = std::env::temp_dir().join(format!(
             "memobi-blocks-{}.db",
-            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
         ));
         let block = crate::genesis::devnet_genesis();
         {
@@ -244,7 +268,12 @@ mod block_store_tests {
         }
         {
             let mut store = BlockStore::open(&path).unwrap();
-            assert_eq!(store.read_all(&crate::params::ConsensusParams::devnet()).unwrap(), vec![block]);
+            assert_eq!(
+                store
+                    .read_all(&crate::params::ConsensusParams::devnet())
+                    .unwrap(),
+                vec![block]
+            );
         }
         let _ = std::fs::remove_file(path);
     }
