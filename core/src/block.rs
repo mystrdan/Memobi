@@ -177,6 +177,31 @@ mod tests {
     use super::*;
 
     #[test]
+    fn block_round_trip_is_canonical() {
+        let block = crate::genesis::devnet_genesis();
+        let encoded = block.encode_to_vec().unwrap();
+        let decoded = crate::chain::Block::decode_bounded(
+            &encoded,
+            &crate::params::ConsensusParams::devnet(),
+        ).unwrap();
+        assert_eq!(decoded, block);
+    }
+
+    #[test]
+    fn block_decoder_rejects_trailing_bytes() {
+        let block = crate::genesis::devnet_genesis();
+        let mut encoded = block.encode_to_vec().unwrap();
+        encoded.push(0);
+        assert_eq!(
+            crate::chain::Block::decode_bounded(
+                &encoded,
+                &crate::params::ConsensusParams::devnet(),
+            ),
+            Err(ProtocolError::InvalidMessageSize)
+        );
+    }
+
+    #[test]
     fn transaction_root_is_deterministic() {
         let tx = Transaction {
             version: 1,
