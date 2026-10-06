@@ -4,7 +4,7 @@ Memobi's synchronization work is being built independently of the eventual netwo
 
 ## Current layers
 
-1. **Header locator** — identifies a local tip that can seed a header request.
+1. **Header locator** — builds a bounded exponential-backoff locator from canonical headers, always retaining genesis.
 2. **Header sync state** — discovers whether a peer reports a higher chain.
 3. **Block sync state** — follows header discovery with block retrieval.
 4. **Synced state** — reached when local height catches the best known height.
@@ -24,7 +24,7 @@ Block requests are capped by `SyncLimits::max_block_batch`, and a planner never 
 
 ## Future requirements
 
-- fork-aware locators
+- fork-aware locators and common-ancestor selection
 - durable block/state consistency checks
 - multiple peers
 - duplicate suppression
@@ -44,3 +44,8 @@ No centralized API is required by this design.
 Incoming `Headers` payloads are decoded into canonical `BlockHeader` values and checked against the local chain before the planner advances to block synchronization. Header-only validation checks network-specific genesis identity, block and PoARM versions, target bounds, parent linkage, height continuity, timestamp ordering, and deterministic difficulty. It deliberately does not replace final block validation: the later block path still verifies the transaction body, transaction root, UTXO transitions, coinbase rules, and PoARM proof.
 
 The sync planner's `GetBlocks { start_height, count }` request now maps directly to the P2P wire message. Request counts are bounded by the protocol's collection limit.
+
+
+## Current source-side serving
+
+The in-process node can now answer bounded `GetHeaders` requests from its canonical header history and bounded `GetBlocks` requests from canonical durable block storage. Header responses are capped at 2,000 headers and block responses at 256 blocks. The serving layer remains transport-neutral; sockets are still outside the node engine.
