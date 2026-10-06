@@ -253,7 +253,8 @@ impl Node {
     }
 
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
-        self.sync.next_request(self.chain.tip)
+        let locator = crate::sync::HeaderLocator::from_headers(&self.chain.headers);
+        self.sync.next_request_with_locator(locator)
     }
 
     /// Translate the deterministic sync planner into the wire protocol.
