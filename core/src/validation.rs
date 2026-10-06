@@ -140,6 +140,9 @@ pub fn validate_header_with_params(
     }
 
     if header.height.0 == 0 {
+        if state.height.is_some() || state.tip.is_some() || !state.headers.is_empty() {
+            return Err(BlockValidationError::InvalidHeight);
+        }
         let expected = crate::genesis::genesis_for_params(params);
         if header != &expected.header {
             return Err(BlockValidationError::InvalidGenesis);
@@ -318,6 +321,19 @@ mod tests {
     fn valid_devnet_header_passes() {
         assert!(validate_block_header(&ChainState::default(), &block(), Hash32::ZERO).is_ok());
     }
+    #[test]
+    fn duplicate_genesis_header_is_rejected() {
+        let genesis = block();
+        let mut state = ChainState::default();
+        state.tip = Some(genesis.header.block_id().unwrap());
+        state.height = Some(0);
+        state.headers.push(genesis.header.clone());
+        assert_eq!(
+            validate_header_with_params(&state, &genesis.header, &crate::params::ConsensusParams::devnet()),
+            Err(BlockValidationError::InvalidHeight)
+        );
+    }
+
     #[test]
     fn zero_target_is_rejected() {
         let mut b = block();
