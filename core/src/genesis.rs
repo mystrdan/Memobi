@@ -31,6 +31,7 @@ impl GenesisConfig {
     }
     pub const fn from_params(params: &ConsensusParams) -> Self {
         Self {
+            chain_id: params.chain_id,
             timestamp: params.genesis_timestamp,
             target: params.genesis_target,
             poarm_version: params.poarm_version,
@@ -40,13 +41,13 @@ impl GenesisConfig {
 
 /// Build a deterministic zero-input genesis block.
 ///
-/// The single genesis transaction has no inputs, one zero-value output
-/// locked to the all-zero pubkey placeholder, and zero fee. It is never
-/// spendable under v1 rules requiring funded inputs; it exists only to
-/// commit to chain identity.
+/// The single genesis transaction has no inputs, one zero-value output whose
+/// spending condition commits to the selected network identity, and zero fee.
+/// It is never spendable under v1 rules requiring funded inputs; it exists
+/// only to commit to chain identity.
 pub fn build_genesis(config: GenesisConfig) -> Block {
-    // NOTE: zero-value output with 32-byte zero pubkey keeps v1 decode
-    // shape stable; the output is unspendable (no funding input exists).
+    // The network-bound spending condition keeps the canonical genesis
+    // encoding distinct across chain IDs while remaining unspendable.
     let genesis_transaction = Transaction {
         version: 1,
         inputs: Vec::new(),
