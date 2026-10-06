@@ -74,9 +74,26 @@ pub fn build_genesis(config: GenesisConfig) -> Block {
     }
 }
 
+/// Build the genesis block directly from the selected network parameters.
+pub fn genesis_for_params(params: &ConsensusParams) -> Block {
+    build_genesis(GenesisConfig::from_params(params))
+}
+
 /// Devnet genesis pinned to `ConsensusParams::devnet()`.
 pub fn devnet_genesis() -> Block {
-    build_genesis(GenesisConfig::from_params(&ConsensusParams::devnet()))
+    genesis_for_params(&ConsensusParams::devnet())
+}
+
+/// Testnet genesis pinned to `ConsensusParams::testnet()`.
+pub fn testnet_genesis() -> Block {
+    genesis_for_params(&ConsensusParams::testnet())
+}
+
+/// Mainnet-candidate genesis pinned to `ConsensusParams::mainnet_candidate()`.
+///
+/// This is still a candidate only; it is not a launched mainnet genesis.
+pub fn mainnet_candidate_genesis() -> Block {
+    genesis_for_params(&ConsensusParams::mainnet_candidate())
 }
 
 #[cfg(test)]
