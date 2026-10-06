@@ -188,6 +188,70 @@ impl Node {
         })
     }
 
+    /// Serve a peer's bounded header request from the canonical header history.
+    ///
+    /// The first locator hash that matches our canonical chain becomes the
+    /// starting point; headers after that point are returned in canonical
+    /// height order. An empty locator starts at genesis.
+    pub fn serve_get_headers(
+        &self,
+        locator: &[Hash32],
+    ) -> Result<Message, NodeError> {
+        const MAX_HEADERS_RESPONSE: usize = 2_000;
+        let start = if locator.is_empty() {
+            0
+        } else {
+            locator
+                .iter()
+                .find_map(|wanted| {
+                    self.chain
+                        .headers
+                        .iter()
+                        .position(|header| header.block_id().ok().as_ref() == Some(wanted))
+                })
+                .map(|index| index.saturating_add(1))
+                .unwrap_or(0)
+        };
+
+        let headers = self
+            .chain
+            .headers
+            .iter()
+            .skip(start)
+            .take(MAX_HEADERS_RESPONSE)
+            .map(Message::encode_header)
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Message::Headers { headers })
+    }
+
+    /// Serve a bounded block range from canonical durable storage.
+    pub fn serve_get_blocks(
+        &self,
+        start_height: u64,
+        count: u64,
+        store: &mut crate::storage::BlockStore,
+    ) -> Result<Message, NodeError> {
+        const MAX_BLOCK_RESPONSE: u64 = 256;
+        if count == 0 || count > MAX_BLOCK_RESPONSE {
+            return Err(NodeError::Protocol(crate::ProtocolError::InvalidMessageSize));
+        }
+
+        let end_height = start_height
+            .checked_add(count)
+            .ok_or(NodeError::Protocol(crate::ProtocolError::InvalidMessageSize))?;
+        let envelopes = store
+            .read_all(&self.params)?
+            .into_iter()
+            .filter(|(block, _)| {
+                block.header.height.0 >= start_height && block.header.height.0 < end_height
+            })
+            .map(|(block, proof)| Message::encode_block(&block, proof))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Message::Blocks { blocks: envelopes })
+    }
+
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         self.sync.next_request(self.chain.tip)
     }
@@ -315,6 +379,29 @@ mod tests {
         )
         .unwrap();
         assert_eq!(node.sync.progress.state, crate::sync::SyncState::Synced);
+    }
+
+    #[test]
+    fn node_serves_headers_after_locator() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        let genesis = crate::genesis::devnet_genesis();
+        node.apply_received_block(genesis.clone(), Hash32::ZERO, genesis.header.timestamp, None).unwrap();
+        assert_eq!(node.serve_get_headers(&[]).unwrap(),
+            Message::Headers { headers: vec![Message::encode_header(&genesis.header).unwrap()] });
+        let locator = genesis.header.block_id().unwrap();
+        assert_eq!(node.serve_get_headers(&[locator]).unwrap(),
+            Message::Headers { headers: vec![] });
+    }
+
+    #[test]
+    fn node_rejects_oversized_block_serving_request() {
+        let node = Node::new(ConsensusParams::devnet());
+        let dir = std::env::temp_dir().join(format!("memobi-node-serve-{}", std::process::id()));
+        let _ = std::fs::remove_file(&dir);
+        let mut store = crate::storage::BlockStore::open(&dir).unwrap();
+        let result = node.serve_get_blocks(0, 257, &mut store);
+        assert!(matches!(result, Err(NodeError::Protocol(crate::ProtocolError::InvalidMessageSize))));
+        let _ = std::fs::remove_file(dir);
     }
 
     #[test]
