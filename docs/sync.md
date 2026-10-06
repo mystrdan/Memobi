@@ -49,3 +49,8 @@ The sync planner's `GetBlocks { start_height, count }` request now maps directly
 ## Current source-side serving
 
 The in-process node can now answer bounded `GetHeaders` requests from its canonical header history and bounded `GetBlocks` requests from canonical durable block storage. Header responses are capped at 2,000 headers and block responses at 256 blocks. The serving layer remains transport-neutral; sockets are still outside the node engine.
+
+
+## Restart integrity
+
+Restart recovery now has a transport-independent consistency check for the two canonical logs. Before replaying blocks into UTXO state, the node verifies that the persisted header count matches the persisted block count and that every persisted header exactly matches its corresponding block header. A mismatch is treated as storage corruption rather than silently selecting one log.
