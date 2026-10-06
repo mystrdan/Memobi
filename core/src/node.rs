@@ -112,9 +112,16 @@ impl Node {
                 if self.peer.phase != crate::p2p::PeerPhase::Established {
                     return Err(NodeError::NotEstablished);
                 }
+                let mut decoded = Vec::with_capacity(blocks.len());
                 for envelope in blocks {
-                    let (block, proof) = Message::decode_block(&envelope, &self.params)?;
-                    self.apply_received_block(block, proof, now_secs, store.as_deref_mut())?;
+                    decoded.push(Message::decode_block(&envelope, &self.params)?);
+                }
+                if store.is_none() {
+                    self.apply_received_blocks(&decoded, now_secs)?;
+                } else {
+                    for (block, proof) in decoded {
+                        self.apply_received_block(block, proof, now_secs, store.as_deref_mut())?;
+                    }
                 }
                 Ok(None)
             }
@@ -122,6 +129,33 @@ impl Node {
                 crate::ProtocolError::InvalidMessageType,
             )),
         }
+    }
+
+    /// Validate a complete block batch against a staged chain before committing.
+    /// This prevents a later invalid block from partially advancing an in-memory node.
+    pub fn apply_received_blocks(
+        &mut self,
+        blocks: &[(Block, Hash32)],
+        now_secs: u64,
+    ) -> Result<(), NodeError> {
+        if blocks.is_empty() {
+            return Err(NodeError::Protocol(crate::ProtocolError::InvalidMessageSize));
+        }
+        let mut staged = self.chain.clone();
+        for (block, proof) in blocks {
+            let parent_timestamp = staged.headers.last().map(|h| h.timestamp);
+            staged.apply_validated_block_with_params_and_context(
+                block,
+                *proof,
+                &self.params,
+                now_secs,
+                parent_timestamp,
+            )?;
+        }
+        let height = staged.height.unwrap_or(0);
+        self.chain = staged;
+        self.sync.blocks_applied(height);
+        Ok(())
     }
 
     pub fn apply_received_block(
