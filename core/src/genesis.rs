@@ -52,7 +52,9 @@ pub fn build_genesis(config: GenesisConfig) -> Block {
         inputs: Vec::new(),
         outputs: vec![TxOutput {
             value: 0,
-            spending_condition: crate::hash::sha256(&config.chain_id.to_le_bytes()).0.to_vec(),
+            spending_condition: crate::hash::sha256(&config.chain_id.to_le_bytes())
+                .0
+                .to_vec(),
         }],
         fee: 0,
     };
@@ -108,7 +110,10 @@ mod tests {
         let b = build_genesis(GenesisConfig::provisional());
         assert_eq!(a, b);
         assert_eq!(a.header.previous_block, Hash32::ZERO);
-        assert_ne!(a.transactions[0].outputs[0].spending_condition, vec![0u8; 32]);
+        assert_ne!(
+            a.transactions[0].outputs[0].spending_condition,
+            vec![0u8; 32]
+        );
         assert_eq!(a.header.height.0, 0);
     }
 

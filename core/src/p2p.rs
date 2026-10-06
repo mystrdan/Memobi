@@ -69,15 +69,11 @@ fn read_bounded_bytes(reader: &mut Reader<'_>) -> Result<Vec<u8>, ProtocolError>
 }
 
 impl Message {
-    pub fn encode_header(
-        header: &crate::block::BlockHeader,
-    ) -> Result<Vec<u8>, ProtocolError> {
+    pub fn encode_header(header: &crate::block::BlockHeader) -> Result<Vec<u8>, ProtocolError> {
         header.encode_to_vec()
     }
 
-    pub fn decode_header(
-        bytes: &[u8],
-    ) -> Result<crate::block::BlockHeader, ProtocolError> {
+    pub fn decode_header(bytes: &[u8]) -> Result<crate::block::BlockHeader, ProtocolError> {
         crate::block::BlockHeader::decode(bytes)
     }
 
@@ -307,7 +303,8 @@ impl PeerSession {
             } => {
                 if protocol_version != 1
                     || node_nonce == self.local_nonce
-                    || self.remote_nonce == Some(node_nonce) {
+                    || self.remote_nonce == Some(node_nonce)
+                {
                     return Err(ProtocolError::UnsupportedVersion);
                 }
                 self.remote_nonce = Some(node_nonce);

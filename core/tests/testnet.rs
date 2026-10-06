@@ -3,10 +3,7 @@
 //! Testnet is intentionally small here: it proves the network identity and
 //! real consensus path before public infrastructure is introduced.
 
-use memobi_core::{
-    genesis::testnet_genesis,
-    params::ConsensusParams,
-};
+use memobi_core::{genesis::testnet_genesis, params::ConsensusParams};
 use memobi_poarm::devnet::{DevnetProducerConfig, produce_for_params};
 
 #[test]
