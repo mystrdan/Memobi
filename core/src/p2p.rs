@@ -278,13 +278,6 @@ impl PeerSession {
     }
 
     pub fn start_with_height(&mut self, height: u64) -> Message {
-        if self.phase != PeerPhase::Disconnected {
-            return Message::Version {
-                protocol_version: 1,
-                node_nonce: self.local_nonce,
-                height,
-            };
-        }
         self.phase = PeerPhase::VersionSent;
         Message::Version {
             protocol_version: 1,
