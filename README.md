@@ -79,6 +79,7 @@ The Rust core currently contains foundations for:
 - header/block persistence consistency checks during restart recovery
 - an in-process node engine
 - real two-node synchronization integration coverage
+- atomic in-memory block-batch validation
 
 The node engine deliberately does **not** own sockets. Transport can be added around the protocol engine without moving consensus logic into the networking layer.
 
@@ -129,7 +130,7 @@ See [docs/roadmap.md](docs/roadmap.md).
 The immediate engineering priorities are:
 
 1. harden the Rust protocol and persistence paths (without running CI until re-enabled)
-2. complete header/block synchronization semantics and persistence consistency checks
+2. complete fork-aware header/block synchronization semantics, atomic batch handling, and persistence consistency checks
 3. integrate the framed TCP transport with the node/session lifecycle
 4. benchmark PoARM on ARM64 and x86-64
 5. finalize wallet/address and consensus specifications
