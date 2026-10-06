@@ -89,9 +89,12 @@ impl BlockStore {
                     return Err(StorageError::Corrupt("truncated block record"));
                 }
                 let len = reader.read_u32_le()? as usize;
+                if len < BLOCK_RECORD_PROOF_BYTES {
+                    return Err(StorageError::Corrupt("block record missing proof"));
+                }
                 let raw = reader.read_bytes(len)?;
-                if raw.is_empty() {
-                    return Err(StorageError::Corrupt("empty block record"));
+                if raw.len() != len {
+                    return Err(StorageError::Corrupt("truncated block record"));
                 }
                 n += 1;
             }
@@ -126,11 +129,11 @@ impl BlockStore {
             .ok_or(StorageError::Corrupt("block record length overflow"))?;
         let record_len_u32 = u32::try_from(record_len)
             .map_err(|_| StorageError::Corrupt("block record length exceeds u32"))?;
-        let mut prefix = Vec::with_capacity(4);
-        put_u32_le(&mut prefix, record_len_u32);
-        self.file.write_all(&prefix)?;
-        self.file.write_all(proof.as_bytes())?;
-        self.file.write_all(&bytes)?;
+        let mut record = Vec::with_capacity(4 + record_len);
+        put_u32_le(&mut record, record_len_u32);
+        record.extend_from_slice(proof.as_bytes());
+        record.extend_from_slice(&bytes);
+        self.file.write_all(&record)?;
         self.file.flush()?;
         self.file.sync_data()?;
         self.count += 1;
