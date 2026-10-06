@@ -164,7 +164,6 @@ impl BlockStore {
     }
 }
 
-
 /// Verify that canonical header and block logs describe the same chain.
 ///
 /// This is intentionally independent from UTXO reconstruction: the block log
@@ -314,7 +313,8 @@ mod block_store_tests {
 
     #[test]
     fn header_and_block_logs_must_match() {
-        let dir = std::env::temp_dir().join(format!("memobi-storage-consistency-{}", std::process::id()));
+        let dir =
+            std::env::temp_dir().join(format!("memobi-storage-consistency-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         let header_path = dir.join("headers");

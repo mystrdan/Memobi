@@ -171,7 +171,6 @@ fn nodes_sync_headers_then_blocks_through_serving_path() {
     let _ = std::fs::remove_dir_all(dir);
 }
 
-
 #[test]
 fn recovery_rejects_divergent_header_and_block_logs() {
     let dir = std::env::temp_dir().join(format!("memobi-recovery-mismatch-{}", std::process::id()));
@@ -184,11 +183,7 @@ fn recovery_rejects_divergent_header_and_block_logs() {
     let mut blocks = BlockStore::open(&block_path).unwrap();
     blocks.append(&genesis, Hash32::ZERO).unwrap();
 
-    let result = Node::recover_from_stores(
-        ConsensusParams::devnet(),
-        &mut headers,
-        &mut blocks,
-    );
+    let result = Node::recover_from_stores(ConsensusParams::devnet(), &mut headers, &mut blocks);
     assert!(matches!(
         result,
         Err(memobi_core::node::NodeError::Chain(
@@ -244,7 +239,8 @@ fn durable_blocks_rebuild_consensus_state_after_restart() {
     drop(headers);
     let mut reopened = BlockStore::open(&block_path).unwrap();
     let mut reopened_headers = HeaderStore::open(&header_path).unwrap();
-    let recovered = Node::recover_from_stores(params, &mut reopened_headers, &mut reopened).unwrap();
+    let recovered =
+        Node::recover_from_stores(params, &mut reopened_headers, &mut reopened).unwrap();
     assert_eq!(recovered.chain.height, produced.chain.height);
     assert_eq!(recovered.chain.tip, produced.chain.tip);
     assert_eq!(recovered.chain.utxos, produced.chain.utxos);
