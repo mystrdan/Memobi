@@ -552,6 +552,31 @@ mod tests {
     }
 
     #[test]
+    fn node_block_batch_failure_does_not_partially_commit() {
+        let params = ConsensusParams::devnet();
+        let mut node = Node::new(params);
+        let genesis = crate::genesis::devnet_genesis();
+        node.apply_received_block(
+            genesis.clone(),
+            Hash32::ZERO,
+            genesis.header.timestamp,
+            None,
+        )
+        .unwrap();
+        let bad = genesis.clone();
+        let result = node.apply_received_blocks(
+            &[
+                (genesis.clone(), Hash32::ZERO),
+                (bad, Hash32::ZERO),
+            ],
+            genesis.header.timestamp,
+        );
+        assert!(result.is_err());
+        assert_eq!(node.chain.height, Some(0));
+        assert_eq!(node.chain.tip, Some(genesis.header.block_id().unwrap()));
+    }
+
+    #[test]
     fn node_rejects_blocks_before_handshake() {
         let mut node = Node::new(ConsensusParams::devnet());
         let result = node.receive_peer_message(Message::Blocks { blocks: vec![] }, 0, None);
