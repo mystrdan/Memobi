@@ -217,12 +217,10 @@ impl HeaderStore {
         Ok(self.file.metadata()?.len())
     }
 
-    pub(crate) fn rollback_to(&mut self, len: u64) -> Result<(), StorageError> {
+    pub(crate) fn rollback_to(&mut self, len: u64, count: u64) -> Result<(), StorageError> {
         self.file.set_len(len)?;
         self.file.sync_data()?;
-        self.count = self.count.checked_sub(1).ok_or(StorageError::Corrupt(
-            "header store rollback underflow",
-        ))?;
+        self.count = count;
         Ok(())
     }
 
