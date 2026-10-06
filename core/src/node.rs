@@ -252,6 +252,30 @@ impl Node {
         Ok(Message::Blocks { blocks: envelopes })
     }
 
+    /// Handle a decoded synchronization request at the node boundary.
+    ///
+    /// Transport remains external: it supplies the decoded request and receives
+    /// the canonical response generated from local chain/storage state.
+    pub fn serve_sync_request(
+        &self,
+        message: Message,
+        block_store: &mut crate::storage::BlockStore,
+    ) -> Result<Message, NodeError> {
+        if self.peer.phase != crate::p2p::PeerPhase::Established {
+            return Err(NodeError::NotEstablished);
+        }
+        match message {
+            Message::GetHeaders { locator } => self.serve_get_headers(&locator),
+            Message::GetBlocks {
+                start_height,
+                count,
+            } => self.serve_get_blocks(start_height, count, block_store),
+            _ => Err(NodeError::Protocol(
+                crate::ProtocolError::InvalidMessageType,
+            )),
+        }
+    }
+
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         let locator = crate::sync::HeaderLocator::from_headers(&self.chain.headers);
         self.sync.next_request_with_locator(locator)
@@ -404,6 +428,41 @@ mod tests {
             node.serve_get_headers(&[locator]).unwrap(),
             Message::Headers { headers: vec![] }
         );
+    }
+
+    #[test]
+    fn node_serves_sync_request_only_after_handshake() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        let dir = std::env::temp_dir().join(format!("memobi-node-request-{}", std::process::id()));
+        let _ = std::fs::remove_file(&dir);
+        let mut store = crate::storage::BlockStore::open(&dir).unwrap();
+
+        let before = node.serve_sync_request(
+            Message::GetHeaders { locator: vec![] },
+            &mut store,
+        );
+        assert!(matches!(before, Err(NodeError::NotEstablished)));
+
+        node.receive_peer_message(
+            Message::Version {
+                protocol_version: 1,
+                node_nonce: 42,
+                height: 0,
+            },
+            0,
+            None,
+        )
+        .unwrap();
+
+        let response = node
+            .serve_sync_request(
+                Message::GetHeaders { locator: vec![] },
+                &mut store,
+            )
+            .unwrap();
+        assert_eq!(response, Message::Headers { headers: vec![] });
+
+        let _ = std::fs::remove_file(dir);
     }
 
     #[test]
