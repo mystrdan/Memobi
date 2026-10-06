@@ -21,6 +21,7 @@ pub mod reward;
 pub mod storage;
 pub mod sync;
 pub mod transaction;
+pub mod transport;
 pub mod utxo;
 pub mod validation;
 pub mod wallet;
