@@ -17,6 +17,7 @@ use crate::{
 pub enum NodeError {
     Protocol(crate::ProtocolError),
     Chain(ChainError),
+    Transport(crate::transport::TransportError),
     NotEstablished,
 }
 
@@ -29,6 +30,12 @@ impl From<crate::ProtocolError> for NodeError {
 impl From<ChainError> for NodeError {
     fn from(value: ChainError) -> Self {
         Self::Chain(value)
+    }
+}
+
+impl From<crate::transport::TransportError> for NodeError {
+    fn from(value: crate::transport::TransportError) -> Self {
+        Self::Transport(value)
     }
 }
 
@@ -285,6 +292,30 @@ impl Node {
                 crate::ProtocolError::InvalidMessageType,
             )),
         }
+    }
+
+    /// Send the local handshake message through an established TCP transport.
+    pub fn start_tcp_peer(
+        &mut self,
+        transport: &mut crate::transport::TcpPeer,
+    ) -> Result<(), NodeError> {
+        transport.send(&self.start_peer())?;
+        Ok(())
+    }
+
+    /// Receive one framed TCP message, feed it through the node engine, and
+    /// send any protocol reply produced by the peer session.
+    pub fn receive_tcp_message(
+        &mut self,
+        transport: &mut crate::transport::TcpPeer,
+        now_secs: u64,
+        store: Option<&mut HeaderStore>,
+    ) -> Result<(), NodeError> {
+        let message = transport.receive()?;
+        if let Some(reply) = self.receive_peer_message(message, now_secs, store)? {
+            transport.send(&reply)?;
+        }
+        Ok(())
     }
 
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
