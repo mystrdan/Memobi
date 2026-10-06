@@ -29,7 +29,8 @@ pub enum Message {
         headers: Vec<Vec<u8>>,
     },
     GetBlocks {
-        locator: Vec<Hash32>,
+        start_height: u64,
+        count: u64,
     },
     Blocks {
         blocks: Vec<Vec<u8>>,
@@ -133,7 +134,7 @@ impl Message {
                 out.extend_from_slice(&height.to_le_bytes());
             }
             Self::Verack => {}
-            Self::GetHeaders { locator } | Self::GetBlocks { locator } => {
+            Self::GetHeaders { locator } => {
                 put_u32_le(
                     &mut out,
                     u32::try_from(locator.len()).map_err(|_| ProtocolError::LengthOverflow)?,
@@ -141,6 +142,10 @@ impl Message {
                 for hash in locator {
                     out.extend_from_slice(hash.as_bytes());
                 }
+            }
+            Self::GetBlocks { start_height, count } => {
+                out.extend_from_slice(&start_height.to_le_bytes());
+                out.extend_from_slice(&count.to_le_bytes());
             }
             Self::Headers { headers } | Self::Blocks { blocks: headers } => {
                 put_u32_le(
@@ -183,18 +188,18 @@ impl Message {
                 height: u64::from_le_bytes(reader.read_array()?),
             },
             1 => Self::Verack,
-            2 | 4 => {
+            2 => {
                 let count = checked_count(reader.read_u32_le()?)?;
                 let mut locator = Vec::with_capacity(count);
                 for _ in 0..count {
                     locator.push(Hash32(reader.read_array()?));
                 }
-                if kind == 2 {
-                    Self::GetHeaders { locator }
-                } else {
-                    Self::GetBlocks { locator }
-                }
+                Self::GetHeaders { locator }
             }
+            4 => Self::GetBlocks {
+                start_height: u64::from_le_bytes(reader.read_array()?),
+                count: u64::from_le_bytes(reader.read_array()?),
+            },
             3 | 5 => {
                 let count = checked_count(reader.read_u32_le()?)?;
                 let mut payloads = Vec::with_capacity(count);
@@ -435,7 +440,8 @@ mod tests {
                 headers: vec![b"header".to_vec()],
             },
             Message::GetBlocks {
-                locator: vec![Hash32([4u8; 32])],
+                start_height: 11,
+                count: 64,
             },
             Message::Blocks {
                 blocks: vec![b"block".to_vec()],
