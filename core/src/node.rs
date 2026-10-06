@@ -70,6 +70,36 @@ impl Node {
                 }
                 Ok(reply)
             }
+            Message::Headers { headers } => {
+                if self.peer.phase != crate::p2p::PeerPhase::Established {
+                    return Err(NodeError::NotEstablished);
+                }
+                let mut candidate = self.chain.clone();
+                let mut highest = candidate.height.unwrap_or(0);
+                for raw in headers {
+                    let header = Message::decode_header(&raw)?;
+                    crate::validation::validate_header_with_params(
+                        &candidate,
+                        &header,
+                        &self.params,
+                    )
+                    .map_err(|e| NodeError::Chain(ChainError::InvalidHeader(e)))?;
+                    candidate.tip = Some(header.block_id()?);
+                    candidate.height = Some(header.height.0);
+                    candidate.work = crate::chainwork::WorkScore(
+                        candidate
+                            .work
+                            .0
+                            .saturating_add(crate::chainwork::block_work(header.target).0),
+                    );
+                    candidate.headers.push(header);
+                    highest = header.height.0;
+                }
+                if !headers.is_empty() {
+                    self.sync.headers_received(highest);
+                }
+                Ok(None)
+            }
             Message::Blocks { blocks } => {
                 if self.peer.phase != crate::p2p::PeerPhase::Established {
                     return Err(NodeError::NotEstablished);
