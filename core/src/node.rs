@@ -169,6 +169,17 @@ impl Node {
         Ok(id)
     }
 
+    /// Restore a node only when the durable header and block logs agree.
+    pub fn recover_from_stores(
+        params: ConsensusParams,
+        headers: &mut crate::storage::HeaderStore,
+        blocks: &mut crate::storage::BlockStore,
+    ) -> Result<Self, NodeError> {
+        crate::storage::verify_chain_consistency(headers, blocks, &params)
+            .map_err(ChainError::Storage)?;
+        Self::recover_from_block_store(params, blocks)
+    }
+
     /// Restore a node from the canonical durable block log.
     ///
     /// Consensus validation is replayed rather than trusting persisted UTXO
