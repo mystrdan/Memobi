@@ -86,13 +86,29 @@
 
 ## Phase 4 — Public testnet
 
+The project is now moving toward a short public Testnet phase. Testnet must be a real
+network with its own chain identity/genesis; it is not a renamed Devnet.
+
 - [ ] Public bootstrap infrastructure
-- [ ] Testnet genesis
+- [x] Testnet genesis construction with distinct chain identity
 - [ ] Explorer
 - [ ] Test MEMO distribution
 - [ ] Independent node operation
 - [ ] Network stress testing
 - [ ] Adversarial testing
+
+## Promotion gate
+
+The intended progression is **Devnet → short Testnet → Mainnet candidate → Mainnet**.
+
+Devnet is no longer the default destination for new architecture work. Testnet is used
+to expose real multi-node, synchronization, PoARM, persistence, wallet, and adversarial
+issues. We should not keep adding speculative features to Testnet once its core network
+behaviour is proven.
+
+Before Mainnet candidate, the remaining blockers are consensus/PoARM finalization,
+reproducible genesis, real P2P transport, independent node operation, security review,
+and cross-platform validation.
 
 ## Phase 5 — Mainnet candidate
 
