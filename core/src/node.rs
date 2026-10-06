@@ -241,7 +241,8 @@ impl Node {
             .checked_add(count)
             .ok_or(NodeError::Protocol(crate::ProtocolError::InvalidMessageSize))?;
         let envelopes = store
-            .read_all(&self.params)?
+            .read_all(&self.params)
+            .map_err(|error| NodeError::Chain(ChainError::Storage(error)))?
             .into_iter()
             .filter(|(block, _)| {
                 block.header.height.0 >= start_height && block.header.height.0 < end_height
