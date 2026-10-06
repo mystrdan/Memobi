@@ -80,3 +80,16 @@ The in-process node now has a header-first path:
 6. Full `Blocks` payloads still go through complete consensus validation, including PoARM proof and UTXO transitions.
 
 The node engine still deliberately does not own sockets. Persistent transport, peer serving limits, rate limits, and production locator/fork handling remain before public Testnet infrastructure.
+
+
+## TCP transport boundary
+
+The Rust core now includes a small synchronous TCP transport in `core/src/transport.rs`. It provides:
+
+- length-prefixed frames with a 2 MiB maximum
+- canonical `Message` encode/decode at the socket boundary
+- bounded receive allocation before payload read
+- connect/accept helpers
+- socket read/write timeout configuration
+
+The transport intentionally does not perform consensus, peer scoring, synchronization, or application routing. Those responsibilities remain above the framing layer so the same node engine can later be driven by TCP, QUIC, or another transport.
