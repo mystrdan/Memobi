@@ -68,6 +68,8 @@ The Rust core currently contains foundations for:
 - bounded P2P message encoding/decoding
 - peer handshake/session state
 - bounded synchronization planning
+- consensus header-only validation before block download
+- translation from sync-planner requests into P2P wire messages
 - canonical header persistence
 - canonical block persistence including PoARM proofs
 - consensus replay-based restart recovery
