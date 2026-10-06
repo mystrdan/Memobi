@@ -139,10 +139,7 @@ impl SyncPlanner {
         self.next_request_with_locator(HeaderLocator::from_tip(tip))
     }
 
-    pub fn next_request_with_locator(
-        &mut self,
-        locator: HeaderLocator,
-    ) -> Option<SyncRequest> {
+    pub fn next_request_with_locator(&mut self, locator: HeaderLocator) -> Option<SyncRequest> {
         if self.progress.best_known_height <= self.progress.local_height {
             self.progress.state = SyncState::Synced;
             return None;
@@ -151,9 +148,7 @@ impl SyncPlanner {
         match self.progress.state {
             SyncState::HeaderSync | SyncState::Idle | SyncState::Synced => {
                 self.progress.state = SyncState::HeaderSync;
-                Some(SyncRequest::GetHeaders {
-                    locator,
-                })
+                Some(SyncRequest::GetHeaders { locator })
             }
             SyncState::BlockSync => {
                 let remaining = self.progress.best_known_height - self.progress.local_height;

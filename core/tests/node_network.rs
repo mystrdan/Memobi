@@ -75,7 +75,6 @@ fn two_nodes_converge_on_real_blocks() {
     assert_eq!(target.sync.progress.state, SyncState::Synced);
 }
 
-
 #[test]
 fn nodes_sync_headers_then_blocks_through_serving_path() {
     let params = ConsensusParams::devnet();
@@ -85,10 +84,7 @@ fn nodes_sync_headers_then_blocks_through_serving_path() {
     })
     .unwrap();
 
-    let dir = std::env::temp_dir().join(format!(
-        "memobi-sync-serving-{}",
-        std::process::id()
-    ));
+    let dir = std::env::temp_dir().join(format!("memobi-sync-serving-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     let block_path = dir.join("source.blocks");
@@ -121,9 +117,13 @@ fn nodes_sync_headers_then_blocks_through_serving_path() {
 
     let mut target = Node::new(params.clone());
     let source_version = source.start_peer();
-    target.receive_peer_message(source_version, 0, None).unwrap();
+    target
+        .receive_peer_message(source_version, 0, None)
+        .unwrap();
     let target_version = target.start_peer();
-    source.receive_peer_message(target_version, 0, None).unwrap();
+    source
+        .receive_peer_message(target_version, 0, None)
+        .unwrap();
 
     let header_request = target.next_sync_message().unwrap();
     let header_response = match header_request {
@@ -136,9 +136,12 @@ fn nodes_sync_headers_then_blocks_through_serving_path() {
 
     let block_request = target.next_sync_message().unwrap();
     let block_response = match block_request {
-        Message::GetBlocks { start_height, count } => {
-            source.serve_get_blocks(start_height, count, &mut source_blocks).unwrap()
-        }
+        Message::GetBlocks {
+            start_height,
+            count,
+        } => source
+            .serve_get_blocks(start_height, count, &mut source_blocks)
+            .unwrap(),
         other => panic!("expected GetBlocks, got {other:?}"),
     };
     let blocks = match block_response {
