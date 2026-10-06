@@ -60,6 +60,21 @@ impl HeaderLocator {
     pub fn is_empty(&self) -> bool {
         self.hashes.is_empty()
     }
+
+    /// Return the first locator hash that exists in canonical headers.
+    /// The result is the canonical height immediately after that ancestor.
+    pub fn common_ancestor_start(
+        &self,
+        headers: &[crate::block::BlockHeader],
+    ) -> Option<usize> {
+        self.hashes.iter().find_map(|wanted| {
+            headers.iter().position(|header| {
+                header.block_id().ok().as_ref() == Some(wanted)
+            })
+        }).map(|index| index.saturating_add(1))
+    }
+
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
