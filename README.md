@@ -18,7 +18,7 @@ Its core thesis is:
 - Network model: **peer-to-peer**
 - Explorer: separate web application
 - Privacy model: **privacy by design**
-- Current block-time hypothesis: **10 seconds** on the devnet parameter set
+- Current block-time hypothesis: **10 seconds** on the current experimental parameter set
 
 Memobi is deliberately not being designed as a general-purpose smart-contract chain.
 
@@ -99,6 +99,22 @@ The protocol is being designed so independent wallets/nodes can exist later; the
 - `docs/` — protocol and research documentation
 - `mobile/` — reserved Flutter application layer
 - `.github/workflows/` — automated checks
+
+## Network promotion
+
+Memobi is deliberately moving through a short validation ladder rather than spending
+indefinitely in Devnet:
+
+**Devnet → Testnet → Mainnet candidate → Mainnet**
+
+Devnet is for deterministic engineering and consensus-path testing. Testnet is for
+real multi-node behaviour, synchronization, persistence, PoARM benchmarking, wallet
+testing, and adversarial testing. Once those gates are satisfied, development should
+shift to a mainnet candidate instead of continuing to accumulate experimental features
+on Testnet.
+
+Testnet now has a distinct network identity and genesis construction path; it is not
+simply a Devnet label.
 
 ## Roadmap
 
