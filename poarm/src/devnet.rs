@@ -9,7 +9,7 @@ use memobi_core::{
     block_builder::BlockTemplate,
     chain::{Block, ChainError, ChainState},
     crypto::SecretKey,
-    genesis::devnet_genesis,
+    genesis::genesis_for_params,
     params::ConsensusParams,
 };
 
@@ -84,11 +84,15 @@ impl From<memobi_core::ProtocolError> for DevnetError {
     }
 }
 
-/// Produce a deterministic devnet chain using the existing consensus path.
-pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError> {
-    let params = ConsensusParams::devnet();
+/// Produce a deterministic chain for the supplied network parameters using the
+/// existing consensus path. This is the same producer used by Devnet and the
+/// short-lived Testnet harness; it is not a second consensus implementation.
+pub fn produce_for_params(
+    params: ConsensusParams,
+    config: DevnetProducerConfig,
+) -> Result<DevnetResult, DevnetError> {
     let mut chain = ChainState::default();
-    let genesis = devnet_genesis();
+    let genesis = genesis_for_params(&params);
     let genesis_ts = genesis.header.timestamp;
     chain.apply_block(&genesis)?;
 
@@ -178,6 +182,11 @@ pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError
         chain,
         blocks: produced,
     })
+}
+
+/// Produce a deterministic devnet chain using the existing consensus path.
+pub fn produce(config: DevnetProducerConfig) -> Result<DevnetResult, DevnetError> {
+    produce_for_params(ConsensusParams::devnet(), config)
 }
 
 #[cfg(test)]
