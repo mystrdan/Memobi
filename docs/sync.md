@@ -54,3 +54,8 @@ The in-process node can now answer bounded `GetHeaders` requests from its canoni
 ## Restart integrity
 
 Restart recovery now has a transport-independent consistency check for the two canonical logs. Before replaying blocks into UTXO state, the node verifies that the persisted header count matches the persisted block count and that every persisted header exactly matches its corresponding block header. A mismatch is treated as storage corruption rather than silently selecting one log.
+
+
+### Fork-aware foundation
+
+Header locators now expose canonical common-ancestor lookup. The node can identify the height immediately after the first matching locator hash, which is the boundary required for a future competing-header branch/reorg flow. Canonical chain mutation is still protected by the existing scratch-state fork replay path; divergent headers are not yet accepted as canonical merely because they are longer.
