@@ -113,6 +113,18 @@ mod tests {
     }
 
     #[test]
+    fn network_genesis_identity_differs() {
+        assert_ne!(
+            devnet_genesis().header.block_id().unwrap(),
+            testnet_genesis().header.block_id().unwrap()
+        );
+        assert_ne!(
+            testnet_genesis().header.block_id().unwrap(),
+            mainnet_candidate_genesis().header.block_id().unwrap()
+        );
+    }
+
+    #[test]
     fn devnet_genesis_hash_is_pinned() {
         let g = devnet_genesis();
         let id = g.header.block_id().unwrap();
