@@ -103,7 +103,7 @@ The protocol is being designed so independent wallets/nodes can exist later; the
 - `poarm/` — PoARM research, miner, and deterministic devnet producer
 - `docs/` — protocol and research documentation
 - `mobile/` — reserved Flutter application layer
-- `.github/workflows/` — automated checks
+- `.github/workflows/` — automated checks (currently paused; manual dispatch only)
 
 ## Network promotion
 
@@ -127,7 +127,7 @@ See [docs/roadmap.md](docs/roadmap.md).
 
 The immediate engineering priorities are:
 
-1. harden the Rust protocol and persistence paths
+1. harden the Rust protocol and persistence paths (without running CI until re-enabled)
 2. complete header/block synchronization semantics and persistence consistency checks
 3. implement real P2P transport
 4. benchmark PoARM on ARM64 and x86-64
