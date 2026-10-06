@@ -75,6 +75,99 @@ fn two_nodes_converge_on_real_blocks() {
     assert_eq!(target.sync.progress.state, SyncState::Synced);
 }
 
+
+#[test]
+fn nodes_sync_headers_then_blocks_through_serving_path() {
+    let params = ConsensusParams::devnet();
+    let produced = produce(DevnetProducerConfig {
+        blocks: 4,
+        ..Default::default()
+    })
+    .unwrap();
+
+    let dir = std::env::temp_dir().join(format!(
+        "memobi-sync-serving-{}",
+        std::process::id()
+    ));
+    let _ = std::fs::remove_dir_all(&dir);
+    std::fs::create_dir_all(&dir).unwrap();
+    let block_path = dir.join("source.blocks");
+    let header_path = dir.join("source.headers");
+    let mut source_blocks = BlockStore::open(&block_path).unwrap();
+    let mut source_headers = HeaderStore::open(&header_path).unwrap();
+
+    let genesis = memobi_core::genesis::devnet_genesis();
+    let mut source = Node::new(params.clone());
+    source
+        .apply_received_block_with_stores(
+            genesis.clone(),
+            Hash32::ZERO,
+            genesis.header.timestamp,
+            &mut source_headers,
+            &mut source_blocks,
+        )
+        .unwrap();
+    for entry in &produced.blocks {
+        source
+            .apply_received_block_with_stores(
+                entry.block.clone(),
+                entry.proof,
+                entry.block.header.timestamp,
+                &mut source_headers,
+                &mut source_blocks,
+            )
+            .unwrap();
+    }
+
+    let mut target = Node::new(params.clone());
+    let source_version = source.start_peer();
+    target.receive_peer_message(source_version, 0, None).unwrap();
+    let target_version = target.start_peer();
+    source.receive_peer_message(target_version, 0, None).unwrap();
+
+    let header_request = target.next_sync_message().unwrap();
+    let header_response = match header_request {
+        Message::GetHeaders { locator } => source.serve_get_headers(&locator).unwrap(),
+        other => panic!("expected GetHeaders, got {other:?}"),
+    };
+    target
+        .receive_peer_message(header_response, genesis.header.timestamp, None)
+        .unwrap();
+
+    let block_request = target.next_sync_message().unwrap();
+    let block_response = match block_request {
+        Message::GetBlocks { start_height, count } => {
+            source.serve_get_blocks(start_height, count, &mut source_blocks).unwrap()
+        }
+        other => panic!("expected GetBlocks, got {other:?}"),
+    };
+    let blocks = match block_response {
+        Message::Blocks { blocks } => blocks,
+        other => panic!("expected Blocks, got {other:?}"),
+    };
+    for envelope in blocks {
+        let (block, _) = Message::decode_block(&envelope, &params).unwrap();
+        target
+            .receive_peer_message(
+                Message::Blocks {
+                    blocks: vec![envelope],
+                },
+                block.header.timestamp,
+                None,
+            )
+            .unwrap();
+    }
+
+    assert_eq!(target.chain.height, source.chain.height);
+    assert_eq!(target.chain.tip, source.chain.tip);
+    assert_eq!(target.chain.utxos, source.chain.utxos);
+    assert_eq!(target.sync.progress.state, SyncState::Synced);
+
+    drop(source_blocks);
+    drop(source_headers);
+    let _ = std::fs::remove_dir_all(dir);
+}
+
 #[test]
 fn durable_blocks_rebuild_consensus_state_after_restart() {
     let params = ConsensusParams::devnet();
