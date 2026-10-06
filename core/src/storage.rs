@@ -124,8 +124,10 @@ impl BlockStore {
         let record_len = BLOCK_RECORD_PROOF_BYTES
             .checked_add(bytes.len())
             .ok_or(StorageError::Corrupt("block record length overflow"))?;
+        let record_len_u32 = u32::try_from(record_len)
+            .map_err(|_| StorageError::Corrupt("block record length exceeds u32"))?;
         let mut prefix = Vec::with_capacity(4);
-        put_u32_le(&mut prefix, record_len as u32);
+        put_u32_le(&mut prefix, record_len_u32);
         self.file.write_all(&prefix)?;
         self.file.write_all(proof.as_bytes())?;
         self.file.write_all(&bytes)?;
@@ -218,7 +220,9 @@ impl HeaderStore {
     pub(crate) fn rollback_to(&mut self, len: u64) -> Result<(), StorageError> {
         self.file.set_len(len)?;
         self.file.sync_data()?;
-        self.count = self.count.saturating_sub(1);
+        self.count = self.count.checked_sub(1).ok_or(StorageError::Corrupt(
+            "header store rollback underflow",
+        ))?;
         Ok(())
     }
 
