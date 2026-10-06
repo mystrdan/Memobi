@@ -75,6 +75,7 @@ impl Node {
                     return Err(NodeError::NotEstablished);
                 }
                 let mut candidate = self.chain.clone();
+                let has_headers = !headers.is_empty();
                 let mut highest = candidate.height.unwrap_or(0);
                 for raw in headers {
                     let header = Message::decode_header(&raw)?;
@@ -95,7 +96,7 @@ impl Node {
                     candidate.headers.push(header);
                     highest = header.height.0;
                 }
-                if !headers.is_empty() {
+                if has_headers {
                     self.sync.headers_received(highest);
                 }
                 Ok(None)
