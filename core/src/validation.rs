@@ -329,7 +329,11 @@ mod tests {
         state.height = Some(0);
         state.headers.push(genesis.header.clone());
         assert_eq!(
-            validate_header_with_params(&state, &genesis.header, &crate::params::ConsensusParams::devnet()),
+            validate_header_with_params(
+                &state,
+                &genesis.header,
+                &crate::params::ConsensusParams::devnet()
+            ),
             Err(BlockValidationError::InvalidHeight)
         );
     }
