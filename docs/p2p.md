@@ -66,3 +66,17 @@ Before public testnet, define:
 - invalid-data penalties
 
 These controls protect availability; they do not determine who may mine.
+
+
+## Current synchronization path
+
+The in-process node now has a header-first path:
+
+1. `Version` establishes peer height.
+2. `GetHeaders` carries a bounded locator.
+3. `Headers` payloads are decoded as canonical 104-byte block headers.
+4. Header-only consensus checks verify network genesis identity, versions, parent linkage, height, timestamps, target, and deterministic difficulty.
+5. The sync planner transitions to `GetBlocks { start_height, count }`.
+6. Full `Blocks` payloads still go through complete consensus validation, including PoARM proof and UTXO transitions.
+
+The node engine still deliberately does not own sockets. Persistent transport, peer serving, rate limits, and production locator construction remain before public Testnet infrastructure.
