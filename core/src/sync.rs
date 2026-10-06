@@ -25,6 +25,38 @@ impl HeaderLocator {
         Self { hashes }
     }
 
+    /// Build an exponential-backoff locator from canonical headers.
+    ///
+    /// Newest headers are sampled densely, then progressively farther apart,
+    /// with genesis always included. This lets a peer find a common ancestor
+    /// without sending the entire local chain.
+    pub fn from_headers(headers: &[crate::block::BlockHeader]) -> Self {
+        if headers.is_empty() {
+            return Self { hashes: Vec::new() };
+        }
+
+        let mut indexes = Vec::new();
+        let mut index = headers.len() - 1;
+        let mut step = 1usize;
+        loop {
+            indexes.push(index);
+            if index == 0 {
+                break;
+            }
+            index = index.saturating_sub(step);
+            step = step.saturating_mul(2).max(1);
+        }
+
+        indexes.sort_unstable();
+        indexes.dedup();
+        let hashes = indexes
+            .into_iter()
+            .filter_map(|i| headers[i].block_id().ok())
+            .rev()
+            .collect();
+        Self { hashes }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.hashes.is_empty()
     }
@@ -197,6 +229,25 @@ mod tests {
         let mut progress = SyncProgress::new(10, 20);
         progress.advance_local_height(20);
         assert_eq!(progress.state, SyncState::Synced);
+    }
+
+    #[test]
+    fn locator_uses_exponential_backoff_and_includes_genesis() {
+        let headers: Vec<_> = (0..10)
+            .map(|height| crate::block::BlockHeader {
+                version: 1,
+                previous_block: Hash32([height.saturating_sub(1) as u8; 32]),
+                height: crate::BlockHeight(height),
+                timestamp: 1_700_000_000 + height * 10,
+                target: u64::MAX,
+                poarm_version: 0,
+                poarm_nonce: height,
+                transaction_root: Hash32([height as u8; 32]),
+            })
+            .collect();
+        let locator = HeaderLocator::from_headers(&headers);
+        assert_eq!(locator.hashes.len(), 5);
+        assert_eq!(locator.hashes.last(), Some(&headers[0].block_id().unwrap()));
     }
 
     #[test]
