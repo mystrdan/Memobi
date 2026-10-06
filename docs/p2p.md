@@ -79,4 +79,4 @@ The in-process node now has a header-first path:
 5. The sync planner transitions to `GetBlocks { start_height, count }`.
 6. Full `Blocks` payloads still go through complete consensus validation, including PoARM proof and UTXO transitions.
 
-The node engine still deliberately does not own sockets. Persistent transport, peer serving, rate limits, and production locator construction remain before public Testnet infrastructure.
+The node engine still deliberately does not own sockets. Persistent transport, peer serving limits, rate limits, and production locator/fork handling remain before public Testnet infrastructure.
