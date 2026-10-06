@@ -245,6 +245,19 @@ impl Node {
     /// The first locator hash that matches our canonical chain becomes the
     /// starting point; headers after that point are returned in canonical
     /// height order. An empty locator starts at genesis.
+    /// Find where a peer's locator joins this canonical header chain.
+    /// This is the synchronization boundary used before a future fork replay.
+    pub fn common_ancestor_height(&self, locator: &[Hash32]) -> Option<u64> {
+        let locator = crate::sync::HeaderLocator {
+            hashes: locator.to_vec(),
+        };
+        locator
+            .common_ancestor_start(&self.chain.headers)
+            .and_then(|next| next.checked_sub(1))
+            .and_then(|index| self.chain.headers.get(index))
+            .map(|header| header.height.0)
+    }
+
     pub fn serve_get_headers(&self, locator: &[Hash32]) -> Result<Message, NodeError> {
         const MAX_HEADERS_RESPONSE: usize = 2_000;
         let start = if locator.is_empty() {
