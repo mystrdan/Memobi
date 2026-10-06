@@ -121,6 +121,63 @@ fn validate_coinbase(
     }
     Ok(())
 }
+/// Validate the consensus-relevant portion of a header without requiring
+/// the block body or PoARM proof. Header-sync uses this before requesting
+/// full blocks; final block validation still verifies the proof and body.
+pub fn validate_header_with_params(
+    state: &ChainState,
+    header: &crate::block::BlockHeader,
+    params: &crate::params::ConsensusParams,
+) -> Result<(), BlockValidationError> {
+    if header.version != params.block_version {
+        return Err(BlockValidationError::UnsupportedBlockVersion);
+    }
+    if header.poarm_version != params.poarm_version {
+        return Err(BlockValidationError::UnsupportedPoarmVersion);
+    }
+    if header.target < params.min_target || header.target > params.max_target {
+        return Err(BlockValidationError::InvalidTarget);
+    }
+
+    if header.height.0 == 0 {
+        let expected = crate::genesis::genesis_for_params(params);
+        if header != &expected.header {
+            return Err(BlockValidationError::InvalidGenesis);
+        }
+        return Ok(());
+    }
+
+    let (tip, tip_height) = match (state.tip, state.height) {
+        (Some(tip), Some(height)) => (tip, height),
+        _ => return Err(BlockValidationError::InvalidHeight),
+    };
+    if header.previous_block != tip {
+        return Err(BlockValidationError::InvalidPreviousBlock);
+    }
+    if header.height.0 != tip_height + 1 {
+        return Err(BlockValidationError::InvalidHeight);
+    }
+
+    if let Some(parent) = state.headers.last()
+        && header.timestamp <= parent.timestamp
+    {
+        return Err(BlockValidationError::TimestampTooOld);
+    }
+
+    let expected = crate::difficulty::next_block_target(
+        &state.timestamps(),
+        state.headers.last().map(|h| h.target),
+        header.timestamp,
+        params,
+    )
+    .map_err(|_| BlockValidationError::InvalidDifficulty)?;
+    if header.target != expected {
+        return Err(BlockValidationError::InvalidDifficulty);
+    }
+
+    Ok(())
+}
+
 pub fn validate_block_header(
     state: &ChainState,
     block: &Block,
