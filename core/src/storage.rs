@@ -164,6 +164,30 @@ impl BlockStore {
     }
 }
 
+
+/// Verify that canonical header and block logs describe the same chain.
+///
+/// This is intentionally independent from UTXO reconstruction: the block log
+/// remains authoritative for replay, while the header log acts as a durable
+/// integrity cross-check.
+pub fn verify_chain_consistency(
+    headers: &mut HeaderStore,
+    blocks: &mut BlockStore,
+    params: &crate::params::ConsensusParams,
+) -> Result<(), StorageError> {
+    let header_records = headers.read_all()?;
+    let block_records = blocks.read_all(params)?;
+    if header_records.len() != block_records.len() {
+        return Err(StorageError::Corrupt("header/block store length mismatch"));
+    }
+    for ((header, (block, _))) in header_records.iter().zip(block_records.iter()) {
+        if header != &block.header {
+            return Err(StorageError::Corrupt("header/block store mismatch"));
+        }
+    }
+    Ok(())
+}
+
 pub struct HeaderStore {
     path: PathBuf,
     file: File,
@@ -287,6 +311,27 @@ impl HeaderStore {
 mod block_store_tests {
     use super::*;
     use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn header_and_block_logs_must_match() {
+        let dir = std::env::temp_dir().join(format!("memobi-storage-consistency-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let header_path = dir.join("headers");
+        let block_path = dir.join("blocks");
+        let block = crate::genesis::devnet_genesis();
+        let mut headers = HeaderStore::open(&header_path).unwrap();
+        let mut blocks = BlockStore::open(&block_path).unwrap();
+        headers.append(&block.header).unwrap();
+        blocks.append(&block, Hash32::ZERO).unwrap();
+        verify_chain_consistency(
+            &mut headers,
+            &mut blocks,
+            &crate::params::ConsensusParams::devnet(),
+        )
+        .unwrap();
+        let _ = std::fs::remove_dir_all(dir);
+    }
 
     #[test]
     fn append_reopen_and_read_blocks() {
