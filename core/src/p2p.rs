@@ -69,6 +69,18 @@ fn read_bounded_bytes(reader: &mut Reader<'_>) -> Result<Vec<u8>, ProtocolError>
 }
 
 impl Message {
+    pub fn encode_header(
+        header: &crate::block::BlockHeader,
+    ) -> Result<Vec<u8>, ProtocolError> {
+        header.encode_to_vec()
+    }
+
+    pub fn decode_header(
+        bytes: &[u8],
+    ) -> Result<crate::block::BlockHeader, ProtocolError> {
+        crate::block::BlockHeader::decode(bytes)
+    }
+
     pub fn encode_block(
         block: &crate::chain::Block,
         proof: Hash32,
@@ -359,6 +371,24 @@ mod tests {
         assert_eq!(peer.phase, PeerPhase::Established);
         assert_eq!(peer.remote_nonce, Some(42));
         assert_eq!(peer.remote_height, Some(123));
+    }
+
+    #[test]
+    fn header_payload_round_trips() {
+        let header = crate::genesis::devnet_genesis().header;
+        let encoded = Message::encode_header(&header).unwrap();
+        assert_eq!(Message::decode_header(&encoded).unwrap(), header);
+    }
+
+    #[test]
+    fn header_payload_rejects_trailing_bytes() {
+        let header = crate::genesis::devnet_genesis().header;
+        let mut encoded = Message::encode_header(&header).unwrap();
+        encoded.push(1);
+        assert_eq!(
+            Message::decode_header(&encoded),
+            Err(ProtocolError::TrailingBytes)
+        );
     }
 
     #[test]
