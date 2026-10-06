@@ -306,8 +306,14 @@ mod tests {
         .unwrap();
         let genesis = crate::genesis::devnet_genesis();
         let header = Message::encode_header(&genesis.header).unwrap();
-        node.receive_peer_message(Message::Headers { headers: vec![header] }, 0, None)
-            .unwrap();
+        node.receive_peer_message(
+            Message::Headers {
+                headers: vec![header],
+            },
+            0,
+            None,
+        )
+        .unwrap();
         assert_eq!(node.sync.progress.state, crate::sync::SyncState::Synced);
     }
 

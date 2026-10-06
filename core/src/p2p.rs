@@ -143,7 +143,10 @@ impl Message {
                     out.extend_from_slice(hash.as_bytes());
                 }
             }
-            Self::GetBlocks { start_height, count } => {
+            Self::GetBlocks {
+                start_height,
+                count,
+            } => {
                 out.extend_from_slice(&start_height.to_le_bytes());
                 out.extend_from_slice(&count.to_le_bytes());
             }
@@ -206,7 +209,7 @@ impl Message {
                     start_height,
                     count,
                 }
-            },
+            }
             3 | 5 => {
                 let count = checked_count(reader.read_u32_le()?)?;
                 let mut payloads = Vec::with_capacity(count);
@@ -428,7 +431,10 @@ mod tests {
             count: 0,
         };
         let encoded = message.encode_to_vec().unwrap();
-        assert_eq!(Message::decode(&encoded), Err(ProtocolError::InvalidMessageSize));
+        assert_eq!(
+            Message::decode(&encoded),
+            Err(ProtocolError::InvalidMessageSize)
+        );
     }
 
     #[test]
@@ -438,7 +444,10 @@ mod tests {
             count: MAX_COLLECTION_ITEMS as u64 + 1,
         };
         let encoded = message.encode_to_vec().unwrap();
-        assert_eq!(Message::decode(&encoded), Err(ProtocolError::InvalidMessageSize));
+        assert_eq!(
+            Message::decode(&encoded),
+            Err(ProtocolError::InvalidMessageSize)
+        );
     }
 
     #[test]
