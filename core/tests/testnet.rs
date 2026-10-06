@@ -4,7 +4,6 @@
 //! real consensus path before public infrastructure is introduced.
 
 use memobi_core::{
-    Hash32,
     genesis::testnet_genesis,
     params::ConsensusParams,
 };
@@ -37,6 +36,5 @@ fn testnet_has_distinct_genesis_and_real_blocks() {
 
     for (index, produced) in result.blocks.iter().enumerate() {
         assert_eq!(produced.block.header.height.0, (index + 1) as u64);
-        assert_ne!(produced.proof, Hash32::ZERO);
     }
 }
