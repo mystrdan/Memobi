@@ -70,6 +70,8 @@ The Rust core currently contains foundations for:
 - bounded synchronization planning
 - consensus header-only validation before block download
 - translation from sync-planner requests into P2P wire messages
+- bounded source-side header and block serving
+- exponential-backoff header locators with genesis fallback
 - canonical header persistence
 - canonical block persistence including PoARM proofs
 - consensus replay-based restart recovery
@@ -125,7 +127,7 @@ See [docs/roadmap.md](docs/roadmap.md).
 The immediate engineering priorities are:
 
 1. harden the Rust protocol and persistence paths
-2. complete header/block synchronization semantics
+2. complete header/block synchronization semantics and persistence consistency checks
 3. implement real P2P transport
 4. benchmark PoARM on ARM64 and x86-64
 5. finalize wallet/address and consensus specifications
