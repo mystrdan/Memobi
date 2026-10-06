@@ -212,6 +212,9 @@ impl Message {
             }
             3 | 5 => {
                 let count = checked_count(reader.read_u32_le()?)?;
+                if kind == 5 && count > 256 {
+                    return Err(ProtocolError::InvalidMessageSize);
+                }
                 let mut payloads = Vec::with_capacity(count);
                 for _ in 0..count {
                     payloads.push(read_bounded_bytes(&mut reader)?);
@@ -302,6 +305,8 @@ impl PeerSession {
 
     pub fn start_with_height(&mut self, height: u64) -> Message {
         self.phase = PeerPhase::VersionSent;
+        self.remote_nonce = None;
+        self.remote_height = None;
         Message::Version {
             protocol_version: 1,
             node_nonce: self.local_nonce,
