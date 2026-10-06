@@ -75,6 +75,7 @@ The Rust core currently contains foundations for:
 - canonical header persistence
 - canonical block persistence including PoARM proofs
 - consensus replay-based restart recovery
+- header/block persistence consistency checks during restart recovery
 - an in-process node engine
 - real two-node synchronization integration coverage
 
