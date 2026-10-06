@@ -1,8 +1,8 @@
 name: Rust
 
+# CI is intentionally paused. Re-enable push/pull_request triggers when requested.
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   check:
