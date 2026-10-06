@@ -244,6 +244,34 @@ mod tests {
     }
 
     #[test]
+    fn testnet_uses_a_distinct_genesis_and_chain_identity() {
+        let params = ConsensusParams::testnet();
+        let result = produce_for_params(
+            params,
+            DevnetProducerConfig {
+                blocks: 2,
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(result.chain.height, Some(2));
+        assert_eq!(
+            result.chain.headers[0].block_id().unwrap(),
+            memobi_core::genesis::testnet_genesis()
+                .header
+                .block_id()
+                .unwrap()
+        );
+        assert_ne!(
+            result.chain.headers[0].block_id().unwrap(),
+            memobi_core::genesis::devnet_genesis()
+                .header
+                .block_id()
+                .unwrap()
+        );
+    }
+
+    #[test]
     fn target_follows_consensus_difficulty_path() {
         let result = produce(DevnetProducerConfig {
             blocks: 60,
