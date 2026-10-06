@@ -437,10 +437,7 @@ mod tests {
         let _ = std::fs::remove_file(&dir);
         let mut store = crate::storage::BlockStore::open(&dir).unwrap();
 
-        let before = node.serve_sync_request(
-            Message::GetHeaders { locator: vec![] },
-            &mut store,
-        );
+        let before = node.serve_sync_request(Message::GetHeaders { locator: vec![] }, &mut store);
         assert!(matches!(before, Err(NodeError::NotEstablished)));
 
         node.receive_peer_message(
@@ -455,10 +452,7 @@ mod tests {
         .unwrap();
 
         let response = node
-            .serve_sync_request(
-                Message::GetHeaders { locator: vec![] },
-                &mut store,
-            )
+            .serve_sync_request(Message::GetHeaders { locator: vec![] }, &mut store)
             .unwrap();
         assert_eq!(response, Message::Headers { headers: vec![] });
 
