@@ -122,6 +122,26 @@ pub enum SyncRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HeaderSyncPlan {
+    pub locator: HeaderLocator,
+    pub local_height: u64,
+    pub best_known_height: u64,
+}
+
+impl HeaderSyncPlan {
+    pub fn new(
+        headers: &[crate::block::BlockHeader],
+        best_known_height: u64,
+    ) -> Self {
+        Self {
+            locator: HeaderLocator::from_headers(headers),
+            local_height: headers.last().map(|h| h.height.0).unwrap_or(0),
+            best_known_height,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SyncPlanner {
     pub limits: SyncLimits,
     pub progress: SyncProgress,
@@ -137,6 +157,13 @@ impl SyncPlanner {
 
     pub fn next_request(&mut self, tip: Option<Hash32>) -> Option<SyncRequest> {
         self.next_request_with_locator(HeaderLocator::from_tip(tip))
+    }
+
+    pub fn plan_headers(
+        &self,
+        headers: &[crate::block::BlockHeader],
+    ) -> HeaderSyncPlan {
+        HeaderSyncPlan::new(headers, self.progress.best_known_height)
     }
 
     pub fn next_request_with_locator(&mut self, locator: HeaderLocator) -> Option<SyncRequest> {
@@ -257,5 +284,29 @@ mod tests {
         let locator = HeaderLocator::from_tip(Some(Hash32([9; 32])));
         assert_eq!(locator.hashes, vec![Hash32([9; 32])]);
         assert!(!locator.is_empty());
+    }
+}
+
+
+#[cfg(test)]
+mod header_sync_plan_tests {
+    use super::*;
+
+    #[test]
+    fn header_plan_tracks_canonical_height_and_locator() {
+        let headers = vec![crate::block::BlockHeader {
+            version: 1,
+            previous_block: Hash32::ZERO,
+            height: crate::block::BlockHeight(0),
+            timestamp: 1,
+            target: u64::MAX,
+            poarm_version: 0,
+            poarm_nonce: 0,
+            transaction_root: Hash32::ZERO,
+        }];
+        let plan = HeaderSyncPlan::new(&headers, 8);
+        assert_eq!(plan.local_height, 0);
+        assert_eq!(plan.best_known_height, 8);
+        assert_eq!(plan.locator.hashes.len(), 1);
     }
 }
