@@ -3,6 +3,11 @@
 //! Message names and wire format are not consensus-frozen. This module exists
 //! so networking work can proceed without coupling it to a centralized API.
 
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{SystemTime, UNIX_EPOCH},
+};
+
 use crate::{
     ProtocolError,
     codec::{Reader, put_bytes, put_u32_le},
@@ -231,14 +236,36 @@ pub enum PeerPhase {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PeerSession {
     pub phase: PeerPhase,
+    pub local_nonce: u64,
     pub remote_nonce: Option<u64>,
     pub remote_height: Option<u64>,
+}
+
+fn fresh_nonce() -> u64 {
+    static COUNTER: AtomicU64 = AtomicU64::new(1);
+    let time = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0);
+    time ^ COUNTER.fetch_add(1, Ordering::Relaxed)
 }
 
 impl Default for PeerSession {
     fn default() -> Self {
         Self {
             phase: PeerPhase::Disconnected,
+            local_nonce: fresh_nonce(),
+            remote_nonce: None,
+            remote_height: None,
+        }
+    }
+}
+
+impl PeerSession {
+    pub fn with_nonce(local_nonce: u64) -> Self {
+        Self {
+            phase: PeerPhase::Disconnected,
+            local_nonce,
             remote_nonce: None,
             remote_height: None,
         }
@@ -251,10 +278,17 @@ impl PeerSession {
     }
 
     pub fn start_with_height(&mut self, height: u64) -> Message {
+        if self.phase != PeerPhase::Disconnected {
+            return Message::Version {
+                protocol_version: 1,
+                node_nonce: self.local_nonce,
+                height,
+            };
+        }
         self.phase = PeerPhase::VersionSent;
         Message::Version {
             protocol_version: 1,
-            node_nonce: 0,
+            node_nonce: self.local_nonce,
             height,
         }
     }
@@ -266,7 +300,9 @@ impl PeerSession {
                 node_nonce,
                 height,
             } => {
-                if protocol_version != 1 || self.remote_nonce == Some(node_nonce) {
+                if protocol_version != 1
+                    || node_nonce == self.local_nonce
+                    || self.remote_nonce == Some(node_nonce) {
                     return Err(ProtocolError::UnsupportedVersion);
                 }
                 self.remote_nonce = Some(node_nonce);
@@ -303,6 +339,17 @@ mod tests {
             a.receive(Message::Ping { nonce: 55 }).unwrap(),
             Some(Message::Pong { nonce: 55 })
         );
+    }
+
+    #[test]
+    fn peer_session_rejects_own_nonce() {
+        let mut peer = PeerSession::with_nonce(42);
+        let result = peer.receive(Message::Version {
+            protocol_version: 1,
+            node_nonce: 42,
+            height: 1,
+        });
+        assert_eq!(result, Err(ProtocolError::UnsupportedVersion));
     }
 
     #[test]
