@@ -73,3 +73,8 @@ Memobi is intended to be a privacy-focused chain. Consensus and storage layers s
 ### Durable node state
 
 The node now has an append-only block store alongside the canonical-header store. ChainState can stage consensus state and persist both the full block and header before committing the in-memory state. Restart/replay recovery is the next step; the durable stores are not yet the final database format.
+
+
+### Durable restart integrity
+
+Canonical header and block logs are independently durable, but restart recovery cross-checks them before reconstructing consensus state. The block log remains the replay source; the header log provides an independent canonical-history integrity check.
