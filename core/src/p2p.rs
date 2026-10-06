@@ -196,9 +196,16 @@ impl Message {
                 }
                 Self::GetHeaders { locator }
             }
-            4 => Self::GetBlocks {
-                start_height: u64::from_le_bytes(reader.read_array()?),
-                count: u64::from_le_bytes(reader.read_array()?),
+            4 => {
+                let start_height = u64::from_le_bytes(reader.read_array()?);
+                let count = u64::from_le_bytes(reader.read_array()?);
+                if count == 0 || count > MAX_COLLECTION_ITEMS as u64 {
+                    return Err(ProtocolError::InvalidMessageSize);
+                }
+                Self::GetBlocks {
+                    start_height,
+                    count,
+                }
             },
             3 | 5 => {
                 let count = checked_count(reader.read_u32_le()?)?;
@@ -412,6 +419,26 @@ mod tests {
             Message::decode(&bytes),
             Err(ProtocolError::InvalidMessageSize)
         );
+    }
+
+    #[test]
+    fn zero_block_request_is_rejected() {
+        let message = Message::GetBlocks {
+            start_height: 1,
+            count: 0,
+        };
+        let encoded = message.encode_to_vec().unwrap();
+        assert_eq!(Message::decode(&encoded), Err(ProtocolError::InvalidMessageSize));
+    }
+
+    #[test]
+    fn oversized_block_request_is_rejected() {
+        let message = Message::GetBlocks {
+            start_height: 1,
+            count: MAX_COLLECTION_ITEMS as u64 + 1,
+        };
+        let encoded = message.encode_to_vec().unwrap();
+        assert_eq!(Message::decode(&encoded), Err(ProtocolError::InvalidMessageSize));
     }
 
     #[test]
