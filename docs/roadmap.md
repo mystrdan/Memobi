@@ -123,3 +123,8 @@ and cross-platform validation.
 ## Phase 6 — Mainnet
 
 Only after the protocol and PoARM assumptions have survived public testing.
+
+
+## Short Testnet gate
+
+Before promoting the protocol to a Mainnet candidate, the current Testnet gate is intentionally narrow: independent nodes must handshake over the transport boundary, synchronize headers then blocks, converge on the same tip/UTXO state, survive durable restart recovery, and reject malformed or divergent persisted data. PoARM must also receive CPU/ARM64 measurements before its production parameters are frozen. This is a gate, not a second feature-development cycle.
