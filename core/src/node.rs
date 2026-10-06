@@ -192,6 +192,22 @@ impl Node {
         self.sync.next_request(self.chain.tip)
     }
 
+    /// Translate the deterministic sync planner into the wire protocol.
+    pub fn next_sync_message(&mut self) -> Option<Message> {
+        match self.next_sync_request()? {
+            SyncRequest::GetHeaders { locator } => Some(Message::GetHeaders {
+                locator: locator.hashes,
+            }),
+            SyncRequest::GetBlocks {
+                start_height,
+                count,
+            } => Some(Message::GetBlocks {
+                start_height,
+                count,
+            }),
+        }
+    }
+
     pub fn observe_peer_height(&mut self, height: u64) {
         self.sync.headers_received(height);
     }
@@ -255,6 +271,44 @@ mod tests {
 
         assert_eq!(node.chain.height, Some(0));
         assert_eq!(node.chain.tip, Some(genesis.header.block_id().unwrap()));
+    }
+
+    #[test]
+    fn node_turns_header_plans_into_wire_messages() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        node.sync.progress.update_best_height(10);
+        assert!(matches!(
+            node.next_sync_message(),
+            Some(Message::GetHeaders { .. })
+        ));
+        node.sync.headers_received(10);
+        assert_eq!(
+            node.next_sync_message(),
+            Some(Message::GetBlocks {
+                start_height: 1,
+                count: 10
+            })
+        );
+    }
+
+    #[test]
+    fn node_validates_header_batches_before_block_sync() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        node.receive_peer_message(
+            Message::Version {
+                protocol_version: 1,
+                node_nonce: 42,
+                height: 0,
+            },
+            0,
+            None,
+        )
+        .unwrap();
+        let genesis = crate::genesis::devnet_genesis();
+        let header = Message::encode_header(&genesis.header).unwrap();
+        node.receive_peer_message(Message::Headers { headers: vec![header] }, 0, None)
+            .unwrap();
+        assert_eq!(node.sync.progress.state, crate::sync::SyncState::Synced);
     }
 
     #[test]
