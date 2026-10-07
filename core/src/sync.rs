@@ -262,6 +262,14 @@ mod tests {
     }
 
     #[test]
+    fn stale_peer_height_cannot_roll_back_sync_target() {
+        let mut progress = SyncProgress::new(10, 20);
+        progress.update_best_height(5);
+        assert_eq!(progress.best_known_height, 20);
+        assert_eq!(progress.state, SyncState::HeaderSync);
+    }
+
+    #[test]
     fn equal_height_is_synced() {
         assert_eq!(SyncProgress::new(10, 10).state, SyncState::Synced);
     }
