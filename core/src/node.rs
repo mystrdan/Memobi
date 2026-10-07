@@ -365,6 +365,54 @@ impl Node {
         Ok(())
     }
 
+    /// Receive one framed TCP message while preserving both durable stores.
+    ///
+    /// The lightweight TCP helper remains available, but this variant is the
+    /// persistence-safe boundary for a canonical node: received blocks are
+    /// committed through the dual-store chain path rather than only the header log.
+    pub fn receive_tcp_message_with_stores(
+        &mut self,
+        transport: &mut crate::transport::TcpPeer,
+        now_secs: u64,
+        header_store: &mut HeaderStore,
+        block_store: &mut crate::storage::BlockStore,
+    ) -> Result<(), NodeError> {
+        let message = transport.receive()?;
+        match message {
+            Message::Blocks { blocks } => {
+                if self.peer.phase != crate::p2p::PeerPhase::Established {
+                    return Err(NodeError::NotEstablished);
+                }
+                if blocks.is_empty() {
+                    return Err(NodeError::Protocol(
+                        crate::ProtocolError::InvalidMessageSize,
+                    ));
+                }
+                let decoded = blocks
+                    .iter()
+                    .map(|envelope| Message::decode_block(envelope, &self.params))
+                    .collect::<Result<Vec<_>, _>>()?;
+                for (block, proof) in decoded {
+                    self.apply_received_block_with_stores(
+                        block,
+                        proof,
+                        now_secs,
+                        header_store,
+                        block_store,
+                    )?;
+                }
+            }
+            other => {
+                if let Some(reply) =
+                    self.receive_peer_message(other, now_secs, Some(header_store))?
+                {
+                    transport.send(&reply)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         let locator = crate::sync::HeaderLocator::from_headers(&self.chain.headers);
         self.sync.next_request_with_locator(locator)
