@@ -393,6 +393,26 @@ impl Node {
     ) -> Result<(), NodeError> {
         let message = transport.receive()?;
         match message {
+            Message::GetHeaders { locator } => {
+                let reply = self.serve_sync_request(
+                    Message::GetHeaders { locator },
+                    block_store,
+                )?;
+                transport.send(&reply)?;
+            }
+            Message::GetBlocks {
+                start_height,
+                count,
+            } => {
+                let reply = self.serve_sync_request(
+                    Message::GetBlocks {
+                        start_height,
+                        count,
+                    },
+                    block_store,
+                )?;
+                transport.send(&reply)?;
+            }
             Message::Blocks { blocks } => {
                 if self.peer.phase != crate::p2p::PeerPhase::Established {
                     return Err(NodeError::NotEstablished);
@@ -430,6 +450,25 @@ impl Node {
     pub fn next_sync_request(&mut self) -> Option<SyncRequest> {
         let locator = crate::sync::HeaderLocator::from_headers(&self.chain.headers);
         self.sync.next_request_with_locator(locator)
+    }
+
+    /// Drive one request/response step over a persistent TCP peer.
+    ///
+    /// This is intentionally one framed message at a time so callers can
+    /// choose their own event loop, timeout policy, and peer scheduling.
+    pub fn receive_tcp_sync_step(
+        &mut self,
+        transport: &mut crate::transport::TcpPeer,
+        now_secs: u64,
+        header_store: &mut HeaderStore,
+        block_store: &mut crate::storage::BlockStore,
+    ) -> Result<(), NodeError> {
+        self.receive_tcp_message_with_stores(
+            transport,
+            now_secs,
+            header_store,
+            block_store,
+        )
     }
 
     /// Translate the deterministic sync planner into the wire protocol.
