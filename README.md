@@ -115,8 +115,8 @@ indefinitely in Devnet:
 **Devnet → Testnet → Mainnet candidate → Mainnet**
 
 Devnet is for deterministic engineering and consensus-path testing. Testnet is for
-real multi-node behaviour, synchronization, persistence, PoARM benchmarking, wallet and short Testnet convergence coverage
-testing, and adversarial testing. Once those gates are satisfied, development should
+real multi-node behaviour, synchronization, persistence, PoARM benchmarking, wallet testing,
+short Testnet convergence coverage, and adversarial testing. Once those gates are satisfied, development should
 shift to a mainnet candidate instead of continuing to accumulate experimental features
 on Testnet.
 
@@ -132,7 +132,7 @@ The immediate engineering priorities are:
 1. harden the Rust protocol and persistence paths (without running CI until re-enabled)
 2. complete fork-aware header/block synchronization semantics, atomic batch handling, and persistence consistency checks
 3. exercise the framed TCP request/response path with real multi-node integration coverage
-3. integrate the framed TCP transport with the node/session lifecycle, including persistent peer loops and request/response routing
+4. integrate the framed TCP transport with the node/session lifecycle, including persistent peer loops and request/response routing
 5. benchmark PoARM on ARM64 and x86-64
 6. finalize wallet/address and consensus specifications
 7. integrate the stable Rust core with Android/Flutter
