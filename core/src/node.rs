@@ -211,6 +211,20 @@ impl Node {
     }
 
     /// Restore a node only when the durable header and block logs agree.
+    /// Validate a complete competing branch from genesis and atomically
+    /// replace the canonical chain only when cumulative work wins.
+    pub fn apply_received_fork(
+        &mut self,
+        fork: &[(Block, Hash32)],
+    ) -> Result<bool, NodeError> {
+        let replaced = self.chain.replay_fork_with_params(fork, &self.params)?;
+        if replaced {
+            let height = self.chain.height.unwrap_or(0);
+            self.sync = SyncPlanner::new(height, height, SyncLimits::default());
+        }
+        Ok(replaced)
+    }
+
     pub fn recover_from_stores(
         params: ConsensusParams,
         headers: &mut crate::storage::HeaderStore,
