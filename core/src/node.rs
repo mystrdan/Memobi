@@ -458,6 +458,46 @@ mod tests {
     use super::*;
 
     #[test]
+    fn node_fork_replacement_is_atomic_and_resets_sync_state() {
+        let mut node = Node::new(ConsensusParams::devnet());
+        let genesis = crate::genesis::devnet_genesis();
+        node.apply_received_block(
+            genesis.clone(),
+            Hash32::ZERO,
+            genesis.header.timestamp,
+            None,
+        )
+        .unwrap();
+
+        let mut fork = vec![(genesis.clone(), Hash32::ZERO)];
+        let mut previous = genesis.header.block_id().unwrap();
+        for height in 1..=2 {
+            let template = crate::block_builder::BlockTemplate {
+                version: node.params.block_version,
+                previous_block: previous,
+                height: crate::BlockHeight(height),
+                timestamp: genesis.header.timestamp + height * 10,
+                target: node.params.max_target,
+                poarm_version: node.params.poarm_version,
+                poarm_nonce: height,
+            };
+            let block = template
+                .build_mining_block_with_params(
+                    Vec::new(),
+                    vec![0u8; crate::crypto::PUBKEY_LEN],
+                    &node.params,
+                )
+                .unwrap();
+            previous = block.header.block_id().unwrap();
+            fork.push((block, Hash32::ZERO));
+        }
+
+        assert!(node.apply_received_fork(&fork).unwrap());
+        assert_eq!(node.chain.height, Some(2));
+        assert_eq!(node.sync.progress.state, crate::sync::SyncState::Synced);
+    }
+
+    #[test]
     fn node_starts_with_idle_peer_and_sync_state() {
         let node = Node::new(ConsensusParams::devnet());
         assert_eq!(node.peer.phase, crate::p2p::PeerPhase::Disconnected);
