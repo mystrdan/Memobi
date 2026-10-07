@@ -78,6 +78,7 @@ The Rust core currently contains foundations for:
 - consensus replay-based restart recovery
 - header/block persistence consistency checks during restart recovery
 - an in-process node engine
+- low-latency transaction acceptance through the node mempool, including peer transaction decoding and relay-message construction
 - real two-node synchronization integration coverage
 - atomic in-memory block-batch validation and an explicit atomic node-level competing-fork replacement path
 
@@ -132,11 +133,12 @@ The immediate engineering priorities are:
 1. harden the Rust protocol and persistence paths (without running CI until re-enabled)
 2. complete fork-aware header/block synchronization semantics, atomic batch handling, and persistence consistency checks
 3. exercise the framed TCP request/response path with real multi-node integration coverage
-4. integrate the framed TCP transport with the node/session lifecycle, including persistent peer loops and request/response routing
-5. benchmark PoARM on ARM64 and x86-64
-6. finalize wallet/address and consensus specifications
-7. integrate the stable Rust core with Android/Flutter
-8. design privacy-preserving messaging/file transfer without putting plaintext application data on-chain
+4. complete low-latency transaction relay across multiple persistent peers and add latency benchmarks for transaction creation, validation, mempool acceptance, and P2P propagation
+5. integrate the framed TCP transport with the node/session lifecycle, including persistent peer loops and request/response routing
+6. benchmark PoARM on ARM64 and x86-64
+7. finalize wallet/address and consensus specifications
+8. integrate the stable Rust core with Android/Flutter
+9. design privacy-preserving messaging/file transfer without putting plaintext application data on-chain
 
 ## Status
 
