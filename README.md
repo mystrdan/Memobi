@@ -79,7 +79,7 @@ The Rust core currently contains foundations for:
 - header/block persistence consistency checks during restart recovery
 - an in-process node engine
 - real two-node synchronization integration coverage
-- atomic in-memory block-batch validation
+- atomic in-memory block-batch validation and an explicit atomic node-level competing-fork replacement path
 
 The node engine deliberately does **not** own sockets. Transport can be added around the protocol engine without moving consensus logic into the networking layer.
 
@@ -115,7 +115,7 @@ indefinitely in Devnet:
 **Devnet → Testnet → Mainnet candidate → Mainnet**
 
 Devnet is for deterministic engineering and consensus-path testing. Testnet is for
-real multi-node behaviour, synchronization, persistence, PoARM benchmarking, wallet
+real multi-node behaviour, synchronization, persistence, PoARM benchmarking, wallet and short Testnet convergence coverage
 testing, and adversarial testing. Once those gates are satisfied, development should
 shift to a mainnet candidate instead of continuing to accumulate experimental features
 on Testnet.
