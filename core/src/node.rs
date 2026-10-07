@@ -601,6 +601,44 @@ mod tests {
         assert_eq!(node.sync.progress.best_known_height, 0);
     }
 
+
+    #[test]
+    fn node_accepts_signed_transaction_without_waiting_for_block() {
+        let params = ConsensusParams::devnet();
+        let mut node = Node::new(params.clone());
+        let sk = crate::crypto::SecretKey::from_bytes(&[17u8; 32]);
+        let op = crate::OutPoint {
+            txid: Hash32([8u8; 32]),
+            index: 0,
+        };
+        node.chain.utxos.insert(
+            op,
+            crate::utxo::UtxoEntry {
+                value: 1_000,
+                spending_condition: sk.public_key().to_vec(),
+                height: 0,
+                is_coinbase: false,
+            },
+        );
+        let mut tx = crate::Transaction {
+            version: params.tx_version,
+            inputs: vec![crate::TxInput {
+                previous_output: op,
+                unlocking_data: Vec::new(),
+            }],
+            outputs: vec![crate::TxOutput {
+                value: 900,
+                spending_condition: sk.public_key().to_vec(),
+            }],
+            fee: 100,
+        };
+        tx.inputs[0].unlocking_data = crate::crypto::authorize_input(&tx, 0, &sk, &params).unwrap();
+        let txid = node.submit_transaction(tx.clone(), 0, 0).unwrap();
+        assert!(node.mempool.contains(&txid));
+        let relay = node.transaction_message(&txid).unwrap();
+        assert_eq!(relay, Message::Tx { transaction: tx.encode_to_vec().unwrap() });
+    }
+
     #[test]
     fn node_tracks_peer_height_after_version() {
         let mut node = Node::new(ConsensusParams::devnet());
