@@ -357,6 +357,26 @@ mod block_store_tests {
     }
 
     #[test]
+    fn read_range_returns_only_requested_heights() {
+        let path = std::env::temp_dir().join(format!(
+            "memobi-block-range-{}.db",
+            SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos()
+        ));
+        let blocks = [crate::genesis::devnet_genesis()];
+        {
+            let mut store = BlockStore::open(&path).unwrap();
+            for block in blocks {
+                store.append(&block, Hash32::ZERO).unwrap();
+            }
+            let range = store
+                .read_range(&crate::params::ConsensusParams::devnet(), 1, 2)
+                .unwrap();
+            assert!(range.is_empty());
+        }
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
     fn append_reopen_and_read_blocks() {
         let path = std::env::temp_dir().join(format!(
             "memobi-blocks-{}.db",
