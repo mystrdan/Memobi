@@ -6,6 +6,7 @@
 
 use crate::{
     chain::{Block, ChainError, ChainState},
+    mempool::{Mempool, MempoolError},
     hash::Hash32,
     p2p::{Message, PeerSession},
     params::ConsensusParams,
@@ -19,6 +20,7 @@ pub enum NodeError {
     Chain(ChainError),
     Transport(crate::transport::TransportError),
     NotEstablished,
+    Mempool(MempoolError),
 }
 
 impl From<crate::ProtocolError> for NodeError {
@@ -33,6 +35,12 @@ impl From<ChainError> for NodeError {
     }
 }
 
+impl From<MempoolError> for NodeError {
+    fn from(value: MempoolError) -> Self {
+        Self::Mempool(value)
+    }
+}
+
 impl From<crate::transport::TransportError> for NodeError {
     fn from(value: crate::transport::TransportError) -> Self {
         Self::Transport(value)
@@ -41,6 +49,7 @@ impl From<crate::transport::TransportError> for NodeError {
 
 pub struct Node {
     pub chain: ChainState,
+    pub mempool: Mempool,
     pub peer: PeerSession,
     pub sync: SyncPlanner,
     pub params: ConsensusParams,
@@ -50,6 +59,7 @@ impl Node {
     pub fn new(params: ConsensusParams) -> Self {
         Self {
             chain: ChainState::default(),
+            mempool: Mempool::new(),
             peer: PeerSession::default(),
             sync: SyncPlanner::new(0, 0, SyncLimits::default()),
             params,
@@ -108,6 +118,13 @@ impl Node {
                 }
                 Ok(None)
             }
+            Message::Tx { transaction } => {
+                if self.peer.phase != crate::p2p::PeerPhase::Established {
+                    return Err(NodeError::NotEstablished);
+                }
+                self.accept_transaction_bytes(&transaction, now_secs, 0)?;
+                Ok(None)
+            }
             Message::Blocks { blocks } => {
                 if self.peer.phase != crate::p2p::PeerPhase::Established {
                     return Err(NodeError::NotEstablished);
@@ -133,6 +150,48 @@ impl Node {
 
     /// Validate a complete block batch against a staged chain before committing.
     /// This prevents a later invalid block from partially advancing an in-memory node.
+    /// Accept a transaction locally with consensus validation and mempool policy.
+    /// This path is independent of block confirmation for low-latency UX.
+    pub fn submit_transaction(
+        &mut self,
+        transaction: crate::Transaction,
+        now_secs: u64,
+        min_fee: u64,
+    ) -> Result<Hash32, NodeError> {
+        let tip_height = self.chain.height.unwrap_or(0);
+        Ok(self.mempool.insert(
+            transaction,
+            &self.chain.utxos,
+            &self.params,
+            tip_height,
+            now_secs,
+            min_fee,
+        )?)
+    }
+
+    /// Decode and accept a canonical transaction received from a peer.
+    pub fn accept_transaction_bytes(
+        &mut self,
+        bytes: &[u8],
+        now_secs: u64,
+        min_fee: u64,
+    ) -> Result<Hash32, NodeError> {
+        let transaction = crate::Transaction::decode_bounded(bytes, &self.params)?;
+        self.submit_transaction(transaction, now_secs, min_fee)
+    }
+
+    /// Build a relay message for an already-accepted transaction.
+    pub fn transaction_message(&self, txid: &Hash32) -> Option<Message> {
+        if !self.mempool.contains(txid) {
+            return None;
+        }
+        self.mempool.candidates(self.mempool.len()).into_iter().find_map(|tx| {
+            tx.txid().ok().filter(|id| id == txid).and_then(|_| {
+                tx.encode_to_vec().ok().map(|transaction| Message::Tx { transaction })
+            })
+        })
+    }
+
     pub fn apply_received_blocks(
         &mut self,
         blocks: &[(Block, Hash32)],
