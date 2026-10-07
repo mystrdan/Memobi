@@ -72,6 +72,12 @@ impl TcpPeer {
         Ok(())
     }
 
+    /// Gracefully close the underlying TCP connection.
+    pub fn shutdown(&self) -> Result<(), TransportError> {
+        self.stream.shutdown(std::net::Shutdown::Both)?;
+        Ok(())
+    }
+
     pub fn receive(&mut self) -> Result<Message, TransportError> {
         let mut len_bytes = [0u8; 4];
         self.stream.read_exact(&mut len_bytes)?;
