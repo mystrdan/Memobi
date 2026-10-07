@@ -165,6 +165,26 @@ impl BlockStore {
         }
         Ok(blocks)
     }
+    pub fn read_range(
+        &mut self,
+        params: &crate::params::ConsensusParams,
+        start: u64,
+        count: u64,
+    ) -> Result<Vec<(crate::chain::Block, Hash32)>, StorageError> {
+        if count == 0 {
+            return Ok(Vec::new());
+        }
+        let end = start
+            .checked_add(count)
+            .ok_or(StorageError::Corrupt("block range overflow"))?;
+        let all = self.read_all(params)?;
+        Ok(all
+            .into_iter()
+            .filter(|(block, _)| {
+                block.header.height.0 >= start && block.header.height.0 < end
+            })
+            .collect())
+    }
 }
 
 /// Verify that canonical header and block logs describe the same chain.
