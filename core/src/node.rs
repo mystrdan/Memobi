@@ -315,7 +315,7 @@ impl Node {
             ));
         }
 
-        let end_height = start_height.checked_add(count).ok_or(NodeError::Protocol(
+        start_height.checked_add(count).ok_or(NodeError::Protocol(
             crate::ProtocolError::InvalidMessageSize,
         ))?;
         let envelopes = store
