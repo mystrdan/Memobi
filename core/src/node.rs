@@ -148,8 +148,6 @@ impl Node {
         }
     }
 
-    /// Validate a complete block batch against a staged chain before committing.
-    /// This prevents a later invalid block from partially advancing an in-memory node.
     /// Accept a transaction locally with consensus validation and mempool policy.
     /// This path is independent of block confirmation for low-latency UX.
     pub fn submit_transaction(
@@ -192,6 +190,8 @@ impl Node {
         })
     }
 
+    /// Validate a complete block batch against a staged chain before committing.
+    /// This prevents a later invalid block from partially advancing an in-memory node.
     pub fn apply_received_blocks(
         &mut self,
         blocks: &[(Block, Hash32)],
@@ -307,6 +307,7 @@ impl Node {
         let height = chain.height.unwrap_or(0);
         Ok(Self {
             chain,
+            mempool: Mempool::new(),
             peer: PeerSession::default(),
             sync: SyncPlanner::new(height, height, SyncLimits::default()),
             params,
