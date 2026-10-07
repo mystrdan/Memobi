@@ -66,7 +66,7 @@ The Rust core currently contains foundations for:
 - cumulative-work chain selection
 - atomic fork replay
 - bounded P2P message encoding/decoding
-- framed synchronous TCP transport boundary, including a dual-store receive path for canonical block persistence
+- framed synchronous TCP transport boundary, including peer shutdown and a dual-store receive path for canonical block persistence
 - peer handshake/session state
 - bounded synchronization planning
 - consensus header-only validation before block download
@@ -131,11 +131,12 @@ The immediate engineering priorities are:
 
 1. harden the Rust protocol and persistence paths (without running CI until re-enabled)
 2. complete fork-aware header/block synchronization semantics, atomic batch handling, and persistence consistency checks
+3. exercise the framed TCP request/response path with real multi-node integration coverage
 3. integrate the framed TCP transport with the node/session lifecycle, including persistent peer loops and request/response routing
-4. benchmark PoARM on ARM64 and x86-64
-5. finalize wallet/address and consensus specifications
-6. integrate the stable Rust core with Android/Flutter
-7. design privacy-preserving messaging/file transfer without putting plaintext application data on-chain
+5. benchmark PoARM on ARM64 and x86-64
+6. finalize wallet/address and consensus specifications
+7. integrate the stable Rust core with Android/Flutter
+8. design privacy-preserving messaging/file transfer without putting plaintext application data on-chain
 
 ## Status
 
