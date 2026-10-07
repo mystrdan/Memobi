@@ -319,12 +319,9 @@ impl Node {
             crate::ProtocolError::InvalidMessageSize,
         ))?;
         let envelopes = store
-            .read_all(&self.params)
+            .read_range(&self.params, start_height, count)
             .map_err(|error| NodeError::Chain(ChainError::Storage(error)))?
             .into_iter()
-            .filter(|(block, _)| {
-                block.header.height.0 >= start_height && block.header.height.0 < end_height
-            })
             .map(|(block, proof)| Message::encode_block(&block, proof))
             .collect::<Result<Vec<_>, _>>()?;
 
